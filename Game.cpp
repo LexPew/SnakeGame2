@@ -7,8 +7,7 @@
 //Grid size so windowSize / gridSize = N grids
 #define gridSize 50
 
-int minRange = gridSize * 2;
-int maxRange = windowSize - minRange;
+int gridNumber = windowSize / gridSize;
 
 
 //Clocks
@@ -145,6 +144,11 @@ void Game::Update()
 	{
 		//If it has restart the clock and update the game
 		tickClock.restart();
+
+    
+
+
+
 	}
 	else
 	{
@@ -162,7 +166,17 @@ void Game::Display()
 
 	//Draw the grid first, everything will be rendered on top of this.
 	gameWindow->draw(gridRect);
+	for (int x = 3; x < 19; x++)
+	{
+		for (int y = 3; y < 19; y++)
+		{
+			if (rand() % gridSize == 1) {
+				appleRect.setPosition(x * gridSize, y * gridSize);
+				gameWindow->draw(appleRect);
+			}
 
+		}
+	}
 	//Draw the foreground last before UI, etc
 	gameWindow->draw(foregroundRect);
 
