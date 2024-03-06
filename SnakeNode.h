@@ -1,9 +1,19 @@
 #pragma once
+#include "SFML/graphics.hpp"
 class SnakeNode
 {
-private:
+public:
+	//Snakes location
+	sf::Vector2f position = sf::Vector2f(0,0);
+	//Holds the snakes last position
+	sf::Vector2f lastPosition = position;
+	//Next element in the linked list
 	SnakeNode* nextElement = nullptr;
 
-	friend class Snake;
+	void Move(sf::Vector2f& newPosition)
+	{
+		lastPosition = position;
+		position = newPosition;
+	}
 };
 

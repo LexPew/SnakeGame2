@@ -85,8 +85,6 @@ public:
 		}
 	}
 
-
-private:
 	SnakeNode* head;
 };
 
