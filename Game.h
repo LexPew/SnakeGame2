@@ -33,25 +33,27 @@ private:
 	//Loop functions
 	void ProcessInput();
 	void Update();
-	void MoveSnake();
-	void SpawnAppleRandomly();
 	void Display();
-	void DrawApples();
 	void Shutdown();
 
 	//Other functions
 	void CalculateFramerate();
 	void AddApple();
+	void SpawnAppleRandomly();
+	void DrawApples();
+	void MoveSnake();
+	void AddSnakeBody();
 
 private:
 	
 	//Snake linked list
 	Snake snake;
+	char lastPressedKey = 0;
 
 	//Tick rate for simulation in seconds, default to 20hz
 	float tickRate = .15;
 
-	sf::Vector2f movementDirection;
+	sf::Vector2f movementDirection = sf::Vector2f(1,0);
 
 	//Textures
 	sf::Texture gridTexture;

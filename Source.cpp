@@ -7,7 +7,7 @@ int main()
     Game snakeGame;
 
     //Initialize Random
-    srand(time(NULL));
+    srand(clock());
     //Then if it succesfully initializes then call the loop function
     if (snakeGame.Initialize()) {
         snakeGame.Loop();

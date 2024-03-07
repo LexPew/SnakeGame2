@@ -84,8 +84,21 @@ public:
 
 		}
 	}
-
 	SnakeNode* head;
+
+	void MoveSnake(sf::Vector2f& newMovePosition)
+	{
+		//Move all the bodys
+		SnakeNode* currentNode = head;
+
+		currentNode->Move(newMovePosition);
+		//While the node we are checking is not null continue to its next element
+		while (currentNode->nextElement != nullptr)
+		{
+			currentNode->nextElement->Move(currentNode->lastPosition);
+			currentNode = currentNode->nextElement;
+		}
+	}
 };
 
 

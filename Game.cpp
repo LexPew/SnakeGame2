@@ -18,11 +18,10 @@ sf::Time elapsedTime;
 int fps{ 0 };
 
 //Apple collectables
-sf::Vector2f applePositions[5];
 const int maxApples = 5;
+sf::Vector2f applePositions[maxApples];
 int currentApples = 0;
 
-sf::Sound music;
 //Main Game Functions
 bool Game::Initialize()
 {
@@ -69,14 +68,10 @@ bool Game::Initialize()
 
 	snake.head->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
 	SnakeNode* node2 = new SnakeNode;
-	SnakeNode* node3 = new SnakeNode;
-	SnakeNode* node4 = new SnakeNode;
-	SnakeNode* node5 = new SnakeNode;
+
 	snake.head->nextElement = node2;
-	node2->nextElement = node3;
-	node3->nextElement = node4;
-	node4->nextElement = node5;
-	std::cout << snake.Length();
+
+
 	//Fill out apple position array with blank elements, then add a valid element to start with
 	for (int a = 0; a < 5; a++)
 	{
@@ -161,16 +156,28 @@ void Game::ProcessInput()
 			{
 				// Check for key presses to change the snake's direction
 			case sf::Keyboard::A:
-				movementDirection = sf::Vector2f(-1, 0); // Move left
+				if (movementDirection != sf::Vector2f(1, 0))
+				{
+					movementDirection = sf::Vector2f(-1, 0); // Move left
+				}
 				break;
 			case sf::Keyboard::D:
-				movementDirection = sf::Vector2f(1, 0); // Move right
+				if (movementDirection != sf::Vector2f(-1, 0))
+				{
+					movementDirection = sf::Vector2f(1, 0); // Move right
+				}
 				break;
 			case sf::Keyboard::W:
-				movementDirection = sf::Vector2f(0, -1); // Move up
+				if (movementDirection != sf::Vector2f(0, 1))
+				{
+					movementDirection = sf::Vector2f(0, -1); // Move up
+				}
 				break;
 			case sf::Keyboard::S:
-				movementDirection = sf::Vector2f(0, 1); // Move down
+				if (movementDirection != sf::Vector2f(0, -1))
+				{
+					movementDirection = sf::Vector2f(0, 1); // Move down
+				}
 				break;
 			}
 			break;
@@ -199,28 +206,6 @@ void Game::Update()
 	}
 
 }
-
-void Game::MoveSnake()
-{
-	//Calculate the new position of the head of the snake
-	sf::Vector2f newHeadPosition = snake.head->position + sf::Vector2f(movementDirection.x * gridSize,
-		movementDirection.y * gridSize);
-
-	//Check if its out of range or an apple
-	
-
-	//Move all the bodys
-	SnakeNode* currentNode = snake.head;
-
-	currentNode->Move(newHeadPosition);
-	//While the node we are checking is not null continue to its next element
-	while (currentNode->nextElement != nullptr)
-	{
-		currentNode->nextElement->Move(currentNode->lastPosition);
-		currentNode = currentNode->nextElement;
-	}
-}
-
 
 
 
@@ -278,7 +263,7 @@ void Game::CalculateFramerate()
 void Game::SpawnAppleRandomly()
 {
 	//Spawn a new apple every now and then based on rand number up until apple limit
-	if (rand() % 1000 == 1 && currentApples < maxApples)
+	if (rand() % 10 == 1 && currentApples < maxApples)
 	{
 		AddApple();
 	}
@@ -286,12 +271,12 @@ void Game::SpawnAppleRandomly()
 void Game::AddApple()
 {
 	//If we have reached the apple limit dont try spawning a new one
-	if (currentApples >= maxApples)
+	if (currentApples > maxApples)
 	{
 		return;
 	}
 
-	int freeAppleIndex;
+	int freeAppleIndex = -1;
 	// Loop through the applePositions array
 	for (int a = 0; a < 5; a++)
 	{
@@ -301,14 +286,21 @@ void Game::AddApple()
 			freeAppleIndex = a;
 		}
 	}
+	//Couldn't find free position return
+	if (freeAppleIndex == -1) {
+		return;
+	}
 
 	// Initialize variables
 	sf::Vector2f newApplePosition;
 	bool positionTaken = false;
-
+	int attempts = 0;
 	// Generate a new random position until it's not taken
 	do
 	{
+		if (attempts >= 50) { break; }
+		attempts++;
+
 		// Generate random X and Y coordinates for the new apple position
 		int appleX = 3 + rand() % 8; // Random number between 3 and 10
 		int appleY = 3 + rand() % 8; // Random number between 3 and 10
@@ -367,3 +359,31 @@ void Game::DrawApples()
 	}
 }
 
+void Game::AddSnakeBody()
+{
+	SnakeNode* nodeToAdd = new SnakeNode;
+	
+	SnakeNode* currentNode = snake.head;
+
+	snake.GetElement(snake.Length() -1 )->nextElement = nodeToAdd;
+
+}
+void Game::MoveSnake()
+{
+	//Move the snake head to a new position check for collision with apples or walls
+	sf::Vector2f newHeadPosition = snake.head->position + sf::Vector2f(movementDirection.x * gridSize,
+		movementDirection.y * gridSize);
+
+	snake.MoveSnake(newHeadPosition);
+
+	for (int a = 0; a < maxApples; a++)
+	{
+		if (applePositions[a] == newHeadPosition)
+		{
+			applePositions[a] = sf::Vector2f(0, 0);
+			currentApples--;
+			AddSnakeBody();
+			//AddApple();
+		}
+	}
+}
