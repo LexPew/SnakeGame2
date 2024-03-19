@@ -10,6 +10,7 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include "Snake.h"
+#include <vector>
 
 //Window size (1:1 ratio)
 #define windowSize 960
@@ -32,8 +33,10 @@ private:
 
 	//Loop functions
 	void ProcessInput();
+	void CreateSnake();
 	void Update();
 	void Display();
+	void DrawSnake();
 	void Shutdown();
 
 	//Other functions
@@ -41,19 +44,18 @@ private:
 	void AddApple();
 	void SpawnAppleRandomly();
 	void DrawApples();
-	void MoveSnake();
-	void AddSnakeBody();
+
+	void CheckAppleCollision(sf::Vector2f& newHeadPosition);
 
 private:
 	
-	//Snake linked list
-	Snake snake;
+	//Snake linked list vector
+	Snake* snake;
 	char lastPressedKey = 0;
 
 	//Tick rate for simulation in seconds, default to 20hz
 	float tickRate = .15;
 
-	sf::Vector2f movementDirection = sf::Vector2f(1,0);
 
 	//Textures
 	sf::Texture gridTexture;

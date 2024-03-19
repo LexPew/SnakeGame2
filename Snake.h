@@ -2,36 +2,100 @@
 #include "SnakeNode.h"
 #include <iostream>
 
+
 class Snake
 {
+public:
+
+	SnakeNode* snakeHead;
+	sf::Vector2f movementDirection;
 public:
 	//Constructor
 	Snake()
 	{
 		//Initilize the first element
-		head = new SnakeNode;
+		snakeHead = new SnakeNode;
 	}
 	//Destructor
 	~Snake()
 	{
 		// Delete all the Snake Nodes
-		SnakeNode* currentNode = head;
+		SnakeNode* currentNode = snakeHead;
 		while (currentNode != nullptr)
 		{
 			SnakeNode* nextNode = currentNode->nextElement;
 			delete currentNode;
 			currentNode = nextNode;
 		}
+
+		snakeHead = nullptr;
 	}
 
+	//Move
+	bool Move()
+	{
+		//Calculate the new position based on the movement direction and grid size.
+		sf::Vector2f newHeadPosition = snakeHead->position + sf::Vector2f(movementDirection.x * 48,
+																			movementDirection.y * 48);
+		//Assign the current node to the snake head
+		SnakeNode* currentNode = snakeHead;
+
+		//Move the head to the new position, this updates it's last position as well
+		currentNode->Move(newHeadPosition);
+
+		//Make sure that there is a next element to update.
+		while (currentNode->nextElement != nullptr)
+		{
+			//Move the next element of the current node to its current position.
+			currentNode->nextElement->Move(currentNode->lastPosition);
+			//Update the currentnode to the next element and repeat
+			currentNode = currentNode->nextElement;
+		}
+
+		//Now that we have updated all the positions check we havent hit any snake parts
+		//Start at the snakehead next element
+		currentNode = snakeHead->nextElement;
+
+		while (currentNode != nullptr)
+		{
+			if (newHeadPosition == currentNode->position)
+			{
+				std::cerr << "Hit ourselves";
+				//Return false since we bumped into ourselves
+				return false;
+			}
+			currentNode = currentNode->nextElement;
+		}
+
+		//Check if the snake is out of bounds
+		if (snakeHead->position.x > 17 * 48|| snakeHead->position.x < 2 * 48
+			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < 2 * 48)
+		{
+			return false;
+		}
+		return true;
+	}
+	//Handle direction
+	void ChangeDirection(const sf::Vector2f& newDirection)
+	{
+		if (newDirection.x != -movementDirection.x || newDirection.y != -movementDirection.y) {
+			movementDirection = newDirection;
+		}
+
+	}
+
+
+
+
+	//Snake related functions
 	//List functions, length, getElement ovverid
-	//Returns the length from 1 -> N
+		//Returns the length from 1 -> N
 	int Length()
 	{
 		int listSize = 0;
 
 		//Start the length search at the head
-		SnakeNode* currentNode = head;
+		SnakeNode* currentNode = snakeHead;
 
 		//While the node we are checking is not null continue to its next element
 		while (currentNode != nullptr)
@@ -60,11 +124,11 @@ public:
 		{
 			//Loop through from first element until i is less than elementIndex - 1 then return the nextElement of i.
 			//So if 1 is input then 0, next element will be 1 index. Also check it is valid
-			SnakeNode* currentNode = head;
+			SnakeNode* currentNode = snakeHead;
 			if (elementIndex == 0) {
 				return currentNode;
 			}
-			else 
+			else
 			{
 				for (int i = 0; i < elementIndex; i++)
 				{
@@ -84,22 +148,19 @@ public:
 
 		}
 	}
-	SnakeNode* head;
 
-	void MoveSnake(sf::Vector2f& newMovePosition)
+	//Adds a body to the snake
+	void AddSnakeBody()
 	{
-		//Move all the bodys
-		SnakeNode* currentNode = head;
+		SnakeNode* nodeToAdd = new SnakeNode;
 
-		currentNode->Move(newMovePosition);
-		//While the node we are checking is not null continue to its next element
-		while (currentNode->nextElement != nullptr)
-		{
-			currentNode->nextElement->Move(currentNode->lastPosition);
-			currentNode = currentNode->nextElement;
-		}
+		SnakeNode* currentNode = snakeHead;
+
+		GetElement(Length() - 1)->nextElement = nodeToAdd;
 	}
 };
-
+		
 
 	
+
+		
