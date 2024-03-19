@@ -10,9 +10,11 @@
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include "Snake.h"
+#include <vector>
 
 //Window size (1:1 ratio)
 #define windowSize 960
+#define gridSize 48
 
 class Game
 {
@@ -32,8 +34,10 @@ private:
 
 	//Loop functions
 	void ProcessInput();
+	void CreateSnake();
 	void Update();
 	void Display();
+	void DrawSnake();
 	void Shutdown();
 
 	//Other functions
@@ -41,23 +45,30 @@ private:
 	void AddApple();
 	void SpawnAppleRandomly();
 	void DrawApples();
-	void MoveSnake();
-	void AddSnakeBody();
+
+	void CheckAppleCollision(sf::Vector2f& newHeadPosition);
 
 private:
 	
-	//Snake linked list
-	Snake snake;
-	char lastPressedKey = 0;
+	//Snake linked list vector
+	Snake* snake;
+
+
+	//Clocks
+	sf::Clock waterClock;
+	sf::Clock tickClock; 
+	sf::Clock fpsClock;
+	sf::Time elapsedTime;
+	int fps{ 0 };
 
 	//Tick rate for simulation in seconds, default to 20hz
 	float tickRate = .15;
 
-	sf::Vector2f movementDirection = sf::Vector2f(1,0);
 
 	//Textures
 	sf::Texture gridTexture;
 	sf::Texture foregroundTexture;
+	sf::Texture waterTankTexture;
 	sf::Texture appleTexture;
 	sf::Texture snakeBodyTexture;
 
@@ -65,12 +76,14 @@ private:
 	sf::Font defaultFont;
 
 	//Shapes
-	sf::RectangleShape gridRect;
-	sf::RectangleShape foregroundRect;
-	sf::RectangleShape appleRect;
-	sf::RectangleShape snakeBodyRect;
+	sf::RectangleShape gridRect = sf::RectangleShape(sf::Vector2f(windowSize, windowSize));
+	sf::RectangleShape foregroundRect = sf::RectangleShape(sf::Vector2f(windowSize, windowSize));
+	sf::RectangleShape waterTankRect = sf::RectangleShape(sf::Vector2f(windowSize, windowSize));
+	sf::RectangleShape appleRect = sf::RectangleShape(sf::Vector2f(gridSize, gridSize));
+	sf::RectangleShape snakeBodyRect = sf::RectangleShape(sf::Vector2f(gridSize, gridSize));
 
 	//Text
 	sf::Text fpsText;
+	sf::Text waterText;
 };
 

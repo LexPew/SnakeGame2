@@ -1,26 +1,22 @@
 #include "Game.h"
 #include <iostream>
 
-
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
-#define gridSize 48
+
 const int gridNumber = 20;
 const int spriteSize = gridSize;
-//Clocks
-
-//Tick clock handles tick rate for simulation
-sf::Clock tickClock;
-//FPS clock handles time elapsed between each frame
-sf::Clock fpsClock;
-sf::Time elapsedTime;
-int fps{ 0 };
 
 //Apple collectables
 const int maxApples = 5;
 sf::Vector2f applePositions[maxApples];
 int currentApples = 0;
+
+int waterTimer{ 90 };
+
+//Movement
+bool hasUpdatedMovement = true;
 
 //Main Game Functions
 bool Game::Initialize()
@@ -41,16 +37,9 @@ bool Game::Initialize()
 	//Game initialization
 	gameWindow->setFramerateLimit(120);
 
-
-	//Init shapes and textures
-	gridRect = sf::RectangleShape(sf::Vector2f(windowSize, windowSize));
-	foregroundRect = sf::RectangleShape(sf::Vector2f(windowSize, windowSize));
-	appleRect = sf::RectangleShape(sf::Vector2f(spriteSize, spriteSize));
-	snakeBodyRect = sf::RectangleShape(sf::Vector2f(spriteSize, spriteSize));
-
-
 	gridRect.setTexture(&gridTexture);
 	foregroundRect.setTexture(&foregroundTexture);
+	waterTankRect.setTexture(&waterTankTexture);
 	appleRect.setTexture(&appleTexture);
 	snakeBodyRect.setTexture(&snakeBodyTexture);
 
@@ -59,18 +48,17 @@ bool Game::Initialize()
 	fpsText.setFont(defaultFont);
 	fpsText.setString("FPS Counter");
 
-	//Reset the deltaClock
+	waterText.setPosition(700,0);
+	waterText.setFont(defaultFont);
+	waterText.setString("Water Clock");
+
+	//Reset the clocks
 	tickClock.restart();
+	waterClock.restart();
 
-	//Add the snake to a valid position
-	int snakeX = 3 + rand() % 8; // Random number between 3 and 10
-	int snakeY = 3 + rand() % 8; // Random number between 3 and 10
 
-	snake.head->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
-	SnakeNode* node2 = new SnakeNode;
-
-	snake.head->nextElement = node2;
-
+	//Create a new snake
+	CreateSnake();
 
 	//Fill out apple position array with blank elements, then add a valid element to start with
 	for (int a = 0; a < 5; a++)
@@ -100,6 +88,12 @@ bool Game::LoadResources()
 	if (!foregroundTexture.loadFromFile("Resources/Sprites/Foreground.png"))
 	{
 		std::cerr << "Couldn't load file: Foreground.png\n";
+		return false;
+	}
+
+	if (!waterTankTexture.loadFromFile("Resources/Sprites/Water.png"))
+	{
+		std::cerr << "Couldn't load file: Water.png\n";
 		return false;
 	}
 
@@ -152,53 +146,72 @@ void Game::ProcessInput()
 			Shutdown();
 			break;
 		case sf::Event::KeyPressed:
-			switch (event.key.code)
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
 			{
-				// Check for key presses to change the snake's direction
-			case sf::Keyboard::A:
-				if (movementDirection != sf::Vector2f(1, 0))
-				{
-					movementDirection = sf::Vector2f(-1, 0); // Move left
-				}
-				break;
-			case sf::Keyboard::D:
-				if (movementDirection != sf::Vector2f(-1, 0))
-				{
-					movementDirection = sf::Vector2f(1, 0); // Move right
-				}
-				break;
-			case sf::Keyboard::W:
-				if (movementDirection != sf::Vector2f(0, 1))
-				{
-					movementDirection = sf::Vector2f(0, -1); // Move up
-				}
-				break;
-			case sf::Keyboard::S:
-				if (movementDirection != sf::Vector2f(0, -1))
-				{
-					movementDirection = sf::Vector2f(0, 1); // Move down
-				}
-				break;
+				CreateSnake();
 			}
+			if (hasUpdatedMovement)
+			{
+				switch (event.key.code)
+				{
+				case sf::Keyboard::A:
+					snake->ChangeDirection(sf::Vector2f(-1, 0)); // Move left
+					break;
+				case sf::Keyboard::D:
+					snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+					break;
+				case sf::Keyboard::W:
+					snake->ChangeDirection(sf::Vector2f(0, -1)); // Move up
+					break;
+				case sf::Keyboard::S:
+					snake->ChangeDirection(sf::Vector2f(0, 1)); // Move down
+					break;
+				}
+
+				hasUpdatedMovement = false;
+			}		
 			break;
 		}
 	}
 }
 
+
+
 void Game::Update()
 {
 	CalculateFramerate();
-	
+	// Calculate water timer
+	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
+
+	// Update text
+	waterText.setString(std::to_string(waterTimer));
+
+	// Calculate percentage filled
+	float percentageFilled = (waterTimer / 90.f);
+
+	// Calculate width of filled area
+	int xFill = (0 + (128 * percentageFilled));
+
+	// Set new texture rectangle size
+	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
 	//Checks that enough time has passed
 	if (tickClock.getElapsedTime().asSeconds() >= tickRate)
 	{
 		//If it has restart the clock and update the game
 		tickClock.restart();
+			if (snake != nullptr)
+			{
+				SpawnAppleRandomly();
 
-		SpawnAppleRandomly();
-		MoveSnake();
-
-	}
+				//Move the snake and update the movement
+				if (!snake->Move())
+				{
+					CreateSnake();
+				}
+				hasUpdatedMovement = true;
+				CheckAppleCollision(snake->snakeHead->position);
+			}
+		}
 	else
 	{
 		//Return early since we have elapsed enough time
@@ -206,8 +219,6 @@ void Game::Update()
 	}
 
 }
-
-
 
 void Game::Display()
 {
@@ -221,28 +232,39 @@ void Game::Display()
 	DrawApples();
 
 	//Draw snake body
-	//Start the search at the head
-	SnakeNode* currentNode = snake.head;
-
-	//While the node we are checking is not null continue to its next element
-	while (currentNode != nullptr)
-	{
-		snakeBodyRect.setPosition(currentNode->position);
-		gameWindow->draw(snakeBodyRect);
-		currentNode = currentNode->nextElement;
-	}
-
-
+	DrawSnake();
+	gameWindow->draw(waterTankRect);
 	//Draw the foreground last before UI, etc
 	gameWindow->draw(foregroundRect);
 
 	//Draw the fps text
 	gameWindow->draw(fpsText);
+	gameWindow->draw(waterText);
 	//Dislay all elements on the screen
 	gameWindow->display();
 }
 
+void Game::DrawSnake()
+{
+	if (snake == nullptr)
+	{
+		return;
+	}
+	//Start the search at the head
+	SnakeNode* currentNode = snake->snakeHead;
 
+	//While the node we are checking is not null continue to its next element
+	while (currentNode != nullptr)
+	{
+		if (snake == nullptr)
+		{
+			return;
+		}
+		snakeBodyRect.setPosition(currentNode->position);
+		gameWindow->draw(snakeBodyRect);
+		currentNode = currentNode->nextElement;
+	}
+}
 
 void Game::Shutdown()
 {
@@ -318,7 +340,7 @@ void Game::AddApple()
 			}
 		}
 		//Check its not spawning on snake either
-		SnakeNode* currentNode = snake.head;
+		SnakeNode* currentNode = snake->snakeHead;
 
 		//While the node we are checking is not null continue to its next element
 		while (currentNode != nullptr)
@@ -341,7 +363,6 @@ void Game::AddApple()
 	} while (positionTaken); // Repeat until a valid position is found
 	return;
 }
-
 void Game::DrawApples()
 {
 	// Loop through the applePositions array
@@ -358,32 +379,35 @@ void Game::DrawApples()
 		}
 	}
 }
-
-void Game::AddSnakeBody()
+void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition)
 {
-	SnakeNode* nodeToAdd = new SnakeNode;
-	
-	SnakeNode* currentNode = snake.head;
-
-	snake.GetElement(snake.Length() -1 )->nextElement = nodeToAdd;
-
-}
-void Game::MoveSnake()
-{
-	//Move the snake head to a new position check for collision with apples or walls
-	sf::Vector2f newHeadPosition = snake.head->position + sf::Vector2f(movementDirection.x * gridSize,
-		movementDirection.y * gridSize);
-
-	snake.MoveSnake(newHeadPosition);
-
+	//Check if we have hit an apple, if so then add a snake body
 	for (int a = 0; a < maxApples; a++)
 	{
 		if (applePositions[a] == newHeadPosition)
 		{
 			applePositions[a] = sf::Vector2f(0, 0);
 			currentApples--;
-			AddSnakeBody();
-			//AddApple();
+			snake->AddSnakeBody();
 		}
 	}
+}
+
+void Game::CreateSnake()
+{
+	//Create a new snake and delete the old one if necessary
+	if (snake != nullptr)
+	{
+		delete snake;
+		snake = nullptr;
+	}
+	//Add the snake to a valid position
+	int snakeX = 3 + rand() % 8; // Random number between 3 and 10
+	int snakeY = 3 + rand() % 8; // Random number between 3 and 10
+	snake = new Snake;
+	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
+	SnakeNode* node2 = new SnakeNode;
+
+	snake->snakeHead->nextElement = node2;
+	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
 }
