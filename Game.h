@@ -36,6 +36,7 @@ private:
 	void ProcessInput();
 	void CreateSnake();
 	void Update();
+	void CalculateWaterTank();
 	void Display();
 	void DrawSnake();
 	void Shutdown();
@@ -84,6 +85,5 @@ private:
 
 	//Text
 	sf::Text fpsText;
-	sf::Text waterText;
 };
 

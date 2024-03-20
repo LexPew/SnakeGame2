@@ -32,7 +32,7 @@ public:
 	}
 
 	//Move
-	bool Move()
+	bool Move(int topBoundsWater)
 	{
 		//Calculate the new position based on the movement direction and grid size.
 		sf::Vector2f newHeadPosition = snakeHead->position + sf::Vector2f(movementDirection.x * 48,
@@ -69,7 +69,7 @@ public:
 
 		//Check if the snake is out of bounds
 		if (snakeHead->position.x > 17 * 48|| snakeHead->position.x < 2 * 48
-			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < 2 * 48)
+			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < topBoundsWater)
 		{
 			return false;
 		}

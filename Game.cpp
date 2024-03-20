@@ -17,7 +17,10 @@ int waterTimer{ 90 };
 
 //Movement
 bool hasUpdatedMovement = true;
+//Water level temp var
 
+sf::RectangleShape waterLevelRect(sf::Vector2f(768, 768));
+int waterTopBounds = 48 * 2;
 //Main Game Functions
 bool Game::Initialize()
 {
@@ -43,14 +46,12 @@ bool Game::Initialize()
 	appleRect.setTexture(&appleTexture);
 	snakeBodyRect.setTexture(&snakeBodyTexture);
 
+	waterLevelRect.setFillColor(sf::Color(0, 0, 255, 125));
+	waterLevelRect.setPosition(96, 96);
 	//Init text
 	fpsText.setPosition(10, 0);
 	fpsText.setFont(defaultFont);
 	fpsText.setString("FPS Counter");
-
-	waterText.setPosition(700,0);
-	waterText.setFont(defaultFont);
-	waterText.setString("Water Clock");
 
 	//Reset the clocks
 	tickClock.restart();
@@ -180,20 +181,7 @@ void Game::ProcessInput()
 void Game::Update()
 {
 	CalculateFramerate();
-	// Calculate water timer
-	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
-
-	// Update text
-	waterText.setString(std::to_string(waterTimer));
-
-	// Calculate percentage filled
-	float percentageFilled = (waterTimer / 90.f);
-
-	// Calculate width of filled area
-	int xFill = (0 + (128 * percentageFilled));
-
-	// Set new texture rectangle size
-	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
+	CalculateWaterTank();
 	//Checks that enough time has passed
 	if (tickClock.getElapsedTime().asSeconds() >= tickRate)
 	{
@@ -204,7 +192,7 @@ void Game::Update()
 				SpawnAppleRandomly();
 
 				//Move the snake and update the movement
-				if (!snake->Move())
+				if (!snake->Move(waterTopBounds))
 				{
 					CreateSnake();
 				}
@@ -217,6 +205,30 @@ void Game::Update()
 		//Return early since we have elapsed enough time
 		return;
 	}
+
+}
+
+void Game::CalculateWaterTank()
+{
+	// Calculate water timer
+	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
+
+	// Calculate percentage filled
+	float percentageFilled = (waterTimer / 90.f);
+
+	// Calculate width of filled area
+	int xFill = (0 + (128 * percentageFilled));
+
+	// Set new texture rectangle size
+	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
+
+	int waterLevelOffset = (768 * percentageFilled);
+	if (waterLevelOffset % 48 == 0 && waterLevelOffset != 0)
+	{
+		waterLevelRect.setPosition(96, 96 + waterLevelOffset);
+		waterTopBounds = waterLevelOffset + 48;
+	}
+
 
 }
 
@@ -233,13 +245,14 @@ void Game::Display()
 
 	//Draw snake body
 	DrawSnake();
+	gameWindow->draw(waterLevelRect);
+	//Draw the water tank
 	gameWindow->draw(waterTankRect);
 	//Draw the foreground last before UI, etc
 	gameWindow->draw(foregroundRect);
 
 	//Draw the fps text
 	gameWindow->draw(fpsText);
-	gameWindow->draw(waterText);
 	//Dislay all elements on the screen
 	gameWindow->display();
 }
@@ -324,8 +337,8 @@ void Game::AddApple()
 		attempts++;
 
 		// Generate random X and Y coordinates for the new apple position
-		int appleX = 3 + rand() % 8; // Random number between 3 and 10
-		int appleY = 3 + rand() % 8; // Random number between 3 and 10
+		int appleX = 3 + rand() % 14; // Random number between 3 and 10
+		int appleY = waterTopBounds/48 + 1 + rand() % 15; // Random number between 3 and 10
 
 		// Calculate the new apple position based on the gridSize
 		newApplePosition = sf::Vector2f(appleX * gridSize, appleY * gridSize);
@@ -402,8 +415,8 @@ void Game::CreateSnake()
 		snake = nullptr;
 	}
 	//Add the snake to a valid position
-	int snakeX = 3 + rand() % 8; // Random number between 3 and 10
-	int snakeY = 3 + rand() % 8; // Random number between 3 and 10
+	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
+	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
 	snake = new Snake;
 	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
 	SnakeNode* node2 = new SnakeNode;
