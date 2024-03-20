@@ -36,6 +36,7 @@ private:
 	void ProcessInput();
 	void CreateSnake();
 	void Update();
+	void CalculateWaterTank();
 	void Display();
 	void DrawSnake();
 	void Shutdown();
@@ -47,6 +48,8 @@ private:
 	void DrawApples();
 
 	void CheckAppleCollision(sf::Vector2f& newHeadPosition);
+
+	void ResetGameState();
 
 private:
 	
@@ -84,6 +87,5 @@ private:
 
 	//Text
 	sf::Text fpsText;
-	sf::Text waterText;
 };
 

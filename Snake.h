@@ -9,6 +9,10 @@ public:
 
 	SnakeNode* snakeHead;
 	sf::Vector2f movementDirection;
+	const int defaultMovementSteps{ 60 };
+	int movementStepsLeft = defaultMovementSteps;
+	int stepsTakenSinceOutOfBreath{ 0 };
+
 public:
 	//Constructor
 	Snake()
@@ -32,7 +36,7 @@ public:
 	}
 
 	//Move
-	bool Move()
+	bool Move(int topBoundsWater)
 	{
 		//Calculate the new position based on the movement direction and grid size.
 		sf::Vector2f newHeadPosition = snakeHead->position + sf::Vector2f(movementDirection.x * 48,
@@ -50,6 +54,14 @@ public:
 			currentNode->nextElement->Move(currentNode->lastPosition);
 			//Update the currentnode to the next element and repeat
 			currentNode = currentNode->nextElement;
+		}
+		if (newHeadPosition.y == (topBoundsWater + 48))
+		{
+			movementStepsLeft = defaultMovementSteps;
+		}
+		else 
+		{
+			movementStepsLeft--;
 		}
 
 		//Now that we have updated all the positions check we havent hit any snake parts
@@ -69,7 +81,7 @@ public:
 
 		//Check if the snake is out of bounds
 		if (snakeHead->position.x > 17 * 48|| snakeHead->position.x < 2 * 48
-			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < 2 * 48)
+			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < topBoundsWater)
 		{
 			return false;
 		}
@@ -84,7 +96,26 @@ public:
 
 	}
 
+	//Step check
+	void CheckSteps()
+	{
+		if (movementStepsLeft <= 0)
+		{
+			if (snakeHead->nextElement != nullptr) 
+			{
+				SnakeNode* currentNode = snakeHead;
+				SnakeNode* previousNode = currentNode;
 
+				while (currentNode->nextElement != nullptr)
+				{
+					previousNode = currentNode;
+					currentNode = currentNode->nextElement;
+				}
+				previousNode->nextElement = nullptr;
+				delete currentNode;
+			}
+		}
+	}
 
 
 	//Snake related functions

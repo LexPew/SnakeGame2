@@ -1,6 +1,6 @@
 #include "Game.h"
 #include <iostream>
-
+#include <random>
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
@@ -17,7 +17,10 @@ int waterTimer{ 90 };
 
 //Movement
 bool hasUpdatedMovement = true;
+//Water level temp var
 
+sf::RectangleShape waterLevelRect(sf::Vector2f(768, 768));
+int waterTopBounds = 48 * 2;
 //Main Game Functions
 bool Game::Initialize()
 {
@@ -43,14 +46,12 @@ bool Game::Initialize()
 	appleRect.setTexture(&appleTexture);
 	snakeBodyRect.setTexture(&snakeBodyTexture);
 
+	waterLevelRect.setFillColor(sf::Color(0, 0, 255, 125));
+	waterLevelRect.setPosition(96, 96);
 	//Init text
 	fpsText.setPosition(10, 0);
 	fpsText.setFont(defaultFont);
 	fpsText.setString("FPS Counter");
-
-	waterText.setPosition(700,0);
-	waterText.setFont(defaultFont);
-	waterText.setString("Water Clock");
 
 	//Reset the clocks
 	tickClock.restart();
@@ -148,7 +149,7 @@ void Game::ProcessInput()
 		case sf::Event::KeyPressed:
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
 			{
-				CreateSnake();
+				ResetGameState();
 			}
 			if (hasUpdatedMovement)
 			{
@@ -175,25 +176,10 @@ void Game::ProcessInput()
 	}
 }
 
-
-
 void Game::Update()
 {
 	CalculateFramerate();
-	// Calculate water timer
-	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
-
-	// Update text
-	waterText.setString(std::to_string(waterTimer));
-
-	// Calculate percentage filled
-	float percentageFilled = (waterTimer / 90.f);
-
-	// Calculate width of filled area
-	int xFill = (0 + (128 * percentageFilled));
-
-	// Set new texture rectangle size
-	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
+	CalculateWaterTank();
 	//Checks that enough time has passed
 	if (tickClock.getElapsedTime().asSeconds() >= tickRate)
 	{
@@ -204,10 +190,11 @@ void Game::Update()
 				SpawnAppleRandomly();
 
 				//Move the snake and update the movement
-				if (!snake->Move())
+				if (!snake->Move(waterTopBounds))\
 				{
-					CreateSnake();
+					ResetGameState();
 				}
+				snake->CheckSteps();  
 				hasUpdatedMovement = true;
 				CheckAppleCollision(snake->snakeHead->position);
 			}
@@ -233,17 +220,55 @@ void Game::Display()
 
 	//Draw snake body
 	DrawSnake();
+	gameWindow->draw(waterLevelRect);
+	//Draw the water tank
 	gameWindow->draw(waterTankRect);
 	//Draw the foreground last before UI, etc
 	gameWindow->draw(foregroundRect);
 
 	//Draw the fps text
 	gameWindow->draw(fpsText);
-	gameWindow->draw(waterText);
 	//Dislay all elements on the screen
 	gameWindow->display();
 }
 
+void Game::Shutdown()
+{
+	//Handle shutdown properly
+	gameWindow->close();
+}
+//Other functions
+void Game::CalculateWaterTank()
+{
+	// Calculate water timer
+	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
+
+	// Calculate percentage filled
+	float percentageFilled = (waterTimer / 90.f);
+
+	// Calculate width of filled area
+	int xFill = (0 + (128 * percentageFilled));
+
+	// Set new texture rectangle size
+	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
+
+	int waterLevelOffset = (768 * percentageFilled);
+	if (waterLevelOffset % 48 == 0 && waterLevelOffset != 0)
+	{
+		waterLevelRect.setPosition(96, 96 + waterLevelOffset);
+		waterTopBounds = waterLevelOffset + 48;
+		for (int a = 0; a < maxApples; a++)
+		{
+
+			if (applePositions[a].y <= waterTopBounds - 48)
+			{
+				applePositions[a] = sf::Vector2f(0, 0);
+			}
+		}
+	}
+
+
+}
 void Game::DrawSnake()
 {
 	if (snake == nullptr)
@@ -265,14 +290,6 @@ void Game::DrawSnake()
 		currentNode = currentNode->nextElement;
 	}
 }
-
-void Game::Shutdown()
-{
-	//Handle shutdown properly
-	gameWindow->close();
-}
-
-//Other functions
 
 //Calucates the games framerate
 void Game::CalculateFramerate()
@@ -324,12 +341,18 @@ void Game::AddApple()
 		attempts++;
 
 		// Generate random X and Y coordinates for the new apple position
-		int appleX = 3 + rand() % 8; // Random number between 3 and 10
-		int appleY = 3 + rand() % 8; // Random number between 3 and 10
+		int startingOffset = 3;
+		int appleX = startingOffset + rand() % (17 - startingOffset); // Random number between 3 and 10
+		std::random_device rd;
+		std::uniform_int_distribution<int> dist(3, (18 - waterTopBounds / 48));
+		int appleY = dist(rd);
 
 		// Calculate the new apple position based on the gridSize
 		newApplePosition = sf::Vector2f(appleX * gridSize, appleY * gridSize);
-
+		if (newApplePosition.y <= waterTopBounds) {
+			positionTaken = true;
+			break;
+		}
 		// Check if the new position is already taken by another apple
 		for (const sf::Vector2f& position : applePositions)
 		{
@@ -389,25 +412,39 @@ void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition)
 			applePositions[a] = sf::Vector2f(0, 0);
 			currentApples--;
 			snake->AddSnakeBody();
+			AddApple();
 		}
 	}
 }
+void Game::ResetGameState() {
+	// Reset water level
+	waterTopBounds = 48 * 2;
 
-void Game::CreateSnake()
-{
-	//Create a new snake and delete the old one if necessary
-	if (snake != nullptr)
-	{
+	// Clear apple positions and reset currentApples count
+	for (int a = 0; a < maxApples; a++) {
+		applePositions[a] = sf::Vector2f(0, 0);
+	}
+	currentApples = 0;
+
+	// Recreate the snake
+	CreateSnake();
+}
+
+void Game::CreateSnake() {
+	// Delete the old snake if it exists
+	if (snake != nullptr) {
 		delete snake;
 		snake = nullptr;
 	}
-	//Add the snake to a valid position
-	int snakeX = 3 + rand() % 8; // Random number between 3 and 10
-	int snakeY = 3 + rand() % 8; // Random number between 3 and 10
-	snake = new Snake;
-	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
-	SnakeNode* node2 = new SnakeNode;
 
-	snake->snakeHead->nextElement = node2;
+	// Generate new snake position
+	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
+	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
+
+	// Create new snake and set its position
+	snake = new Snake;
+	SnakeNode* snode = new SnakeNode;
+	snake->snakeHead->nextElement = snode;
+	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
 	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
 }
