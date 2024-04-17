@@ -55,7 +55,7 @@ public:
 			//Update the currentnode to the next element and repeat
 			currentNode = currentNode->nextElement;
 		}
-		if (newHeadPosition.y == (topBoundsWater + 48))
+		if (newHeadPosition.y == (topBoundsWater))
 		{
 			movementStepsLeft = defaultMovementSteps;
 		}

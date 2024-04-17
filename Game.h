@@ -44,6 +44,7 @@ private:
 	//Other functions
 	void CalculateFramerate();
 	void AddApple();
+	int RandomInt(int min, int max);
 	void SpawnAppleRandomly();
 	void DrawApples();
 

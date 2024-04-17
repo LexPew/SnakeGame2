@@ -13,7 +13,8 @@ const int maxApples = 5;
 sf::Vector2f applePositions[maxApples];
 int currentApples = 0;
 
-int waterTimer{ 90 };
+float waterTimer;
+
 
 //Movement
 bool hasUpdatedMovement = true;
@@ -209,6 +210,14 @@ void Game::Update()
 
 void Game::Display()
 {
+	/*system("cls");
+	int appleCount = 0;
+	for (sf::Vector2f apple : applePositions) {
+		if (apple != sf::Vector2f(0, 0)) {
+			appleCount++;
+		}
+	}
+	std::cout << "Apple count : " << appleCount;*/
 	//Clears the game window with black
 	gameWindow->clear(sf::Color::Black);
 
@@ -241,7 +250,7 @@ void Game::Shutdown()
 void Game::CalculateWaterTank()
 {
 	// Calculate water timer
-	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
+	waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
 
 	// Calculate percentage filled
 	float percentageFilled = (waterTimer / 90.f);
@@ -286,6 +295,11 @@ void Game::DrawSnake()
 			return;
 		}
 		snakeBodyRect.setPosition(currentNode->position);
+		if (snake->movementStepsLeft > 0) {
+			int colourMultiplier = (snake->defaultMovementSteps / snake->movementStepsLeft);
+			snakeBodyRect.setFillColor(sf::Color(0, 200 * colourMultiplier, 0, 255));
+		}
+
 		gameWindow->draw(snakeBodyRect);
 		currentNode = currentNode->nextElement;
 	}
@@ -302,7 +316,7 @@ void Game::CalculateFramerate()
 void Game::SpawnAppleRandomly()
 {
 	//Spawn a new apple every now and then based on rand number up until apple limit
-	if (rand() % 10 == 1 && currentApples < maxApples)
+	if (rand() % 10 == 1)
 	{
 		AddApple();
 	}
@@ -310,13 +324,13 @@ void Game::SpawnAppleRandomly()
 void Game::AddApple()
 {
 	//If we have reached the apple limit dont try spawning a new one
-	if (currentApples > maxApples)
+	if (currentApples >= maxApples)
 	{
 		return;
 	}
 
+	// Loop through the applePositions array finding a free position if we cant find one return
 	int freeAppleIndex = -1;
-	// Loop through the applePositions array
 	for (int a = 0; a < 5; a++)
 	{
 		// Check if the current apple position is empty (0, 0)
@@ -325,7 +339,6 @@ void Game::AddApple()
 			freeAppleIndex = a;
 		}
 	}
-	//Couldn't find free position return
 	if (freeAppleIndex == -1) {
 		return;
 	}
@@ -340,19 +353,11 @@ void Game::AddApple()
 		if (attempts >= 50) { break; }
 		attempts++;
 
-		// Generate random X and Y coordinates for the new apple position
-		int startingOffset = 3;
-		int appleX = startingOffset + rand() % (17 - startingOffset); // Random number between 3 and 10
-		std::random_device rd;
-		std::uniform_int_distribution<int> dist(3, (18 - waterTopBounds / 48));
-		int appleY = dist(rd);
-
-		// Calculate the new apple position based on the gridSize
+		// Generate random X and Y coordinates for the new apple position, then calculate the apple position on the grid and ensure its below the the water line
+		int appleX = RandomInt(3, 17);
+		int appleY = RandomInt((waterTopBounds / 48) + 1, 17);
 		newApplePosition = sf::Vector2f(appleX * gridSize, appleY * gridSize);
-		if (newApplePosition.y <= waterTopBounds) {
-			positionTaken = true;
-			break;
-		}
+
 		// Check if the new position is already taken by another apple
 		for (const sf::Vector2f& position : applePositions)
 		{
@@ -362,10 +367,9 @@ void Game::AddApple()
 				break;
 			}
 		}
-		//Check its not spawning on snake either
+		//Check its not spawning on snake either, loop through
 		SnakeNode* currentNode = snake->snakeHead;
 
-		//While the node we are checking is not null continue to its next element
 		while (currentNode != nullptr)
 		{
 			if (newApplePosition == currentNode->position) {
@@ -385,6 +389,12 @@ void Game::AddApple()
 		}
 	} while (positionTaken); // Repeat until a valid position is found
 	return;
+}
+int Game::RandomInt(int min, int max)
+{
+	std::random_device rd;
+	std::uniform_int_distribution<int> dist(min, max);
+	return dist(rd);
 }
 void Game::DrawApples()
 {
@@ -416,10 +426,12 @@ void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition)
 		}
 	}
 }
-void Game::ResetGameState() {
+void Game::ResetGameState()
+{
 	// Reset water level
 	waterTopBounds = 48 * 2;
-
+	waterClock.restart();
+	waterLevelRect.setPosition(96, 96);
 	// Clear apple positions and reset currentApples count
 	for (int a = 0; a < maxApples; a++) {
 		applePositions[a] = sf::Vector2f(0, 0);
