@@ -207,6 +207,30 @@ void Game::Update()
 
 }
 
+void Game::CalculateWaterTank()
+{
+	// Calculate water timer
+	float waterTimer = 0.f + waterClock.getElapsedTime().asSeconds();
+
+	// Calculate percentage filled
+	float percentageFilled = (waterTimer / 90.f);
+
+	// Calculate width of filled area
+	int xFill = (0 + (128 * percentageFilled));
+
+	// Set new texture rectangle size
+	waterTankRect.setTextureRect(sf::IntRect(xFill, 0, 160, 160));
+
+	int waterLevelOffset = (768 * percentageFilled);
+	if (waterLevelOffset % 48 == 0 && waterLevelOffset != 0)
+	{
+		waterLevelRect.setPosition(96, 96 + waterLevelOffset);
+		waterTopBounds = waterLevelOffset + 48;
+	}
+
+
+}
+
 void Game::Display()
 {
 	//Clears the game window with black
