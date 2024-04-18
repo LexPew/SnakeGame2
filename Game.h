@@ -66,7 +66,7 @@ private:
 	int fps{ 0 };
 
 	//Tick rate for simulation in seconds, default to 20hz
-	float tickRate = .15;
+	float tickRate = .18;
 
 
 	//Textures

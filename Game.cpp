@@ -47,7 +47,7 @@ bool Game::Initialize()
 	appleRect.setTexture(&appleTexture);
 	snakeBodyRect.setTexture(&snakeBodyTexture);
 
-	waterLevelRect.setFillColor(sf::Color(0, 0, 255, 125));
+	waterLevelRect.setFillColor(sf::Color(0, 0, 255, 100));
 	waterLevelRect.setPosition(96, 96);
 	//Init text
 	fpsText.setPosition(10, 0);
@@ -295,9 +295,17 @@ void Game::DrawSnake()
 			return;
 		}
 		snakeBodyRect.setPosition(currentNode->position);
-		if (snake->movementStepsLeft > 0) {
-			int colourMultiplier = (snake->defaultMovementSteps / snake->movementStepsLeft);
-			snakeBodyRect.setFillColor(sf::Color(0, 200 * colourMultiplier, 0, 255));
+
+		//Catch division by zero with if statment 
+		if(snake->movementStepsLeft > 0)
+		{
+			float colourMultiplier = ((float)snake->movementStepsLeft / snake->defaultMovementSteps);
+			float colourValue = 255 * colourMultiplier;
+			snakeBodyRect.setFillColor(sf::Color(0, colourValue, -colourValue, 255));
+		}
+		else
+		{
+			snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
 		}
 
 		gameWindow->draw(snakeBodyRect);

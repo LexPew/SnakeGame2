@@ -9,8 +9,8 @@ public:
 
 	SnakeNode* snakeHead;
 	sf::Vector2f movementDirection;
-	const int defaultMovementSteps{ 60 };
-	int movementStepsLeft = defaultMovementSteps;
+	const int defaultMovementSteps{ 100 };
+	int movementStepsLeft;
 	int stepsTakenSinceOutOfBreath{ 0 };
 
 public:
@@ -19,6 +19,7 @@ public:
 	{
 		//Initilize the first element
 		snakeHead = new SnakeNode;
+		movementStepsLeft = defaultMovementSteps;
 	}
 	//Destructor
 	~Snake()
@@ -59,7 +60,7 @@ public:
 		{
 			movementStepsLeft = defaultMovementSteps;
 		}
-		else 
+		else if(movementStepsLeft > 0)
 		{
 			movementStepsLeft--;
 		}
