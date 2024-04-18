@@ -34,7 +34,7 @@ private:
 
 	//Loop functions
 	void ProcessInput();
-	void CreateSnake();
+	void CreateSnakes();
 	void Update();
 	void CalculateWaterTank();
 	void Display();
@@ -48,15 +48,15 @@ private:
 	void SpawnAppleRandomly();
 	void DrawApples();
 
-	void CheckAppleCollision(sf::Vector2f& newHeadPosition);
+	void CheckAppleCollision(sf::Vector2f& newHeadPosition, Snake* snake);
 
 	void ResetGameState();
 
 private:
 	
 	//Snake linked list vector
-	Snake* snake;
-
+	std::vector<Snake*> snakes;
+	const int startingSnakeCount{ 5 };
 
 	//Clocks
 	sf::Clock waterClock;

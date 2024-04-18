@@ -60,7 +60,7 @@ bool Game::Initialize()
 
 
 	//Create a new snake
-	CreateSnake();
+	CreateSnakes();
 
 	//Fill out apple position array with blank elements, then add a valid element to start with
 	for (int a = 0; a < 5; a++)
@@ -157,16 +157,28 @@ void Game::ProcessInput()
 				switch (event.key.code)
 				{
 				case sf::Keyboard::A:
-					snake->ChangeDirection(sf::Vector2f(-1, 0)); // Move left
+					for (Snake* snake : snakes)
+					{
+						snake->ChangeDirection(sf::Vector2f(-1, 0)); // Move left
+					}
 					break;
 				case sf::Keyboard::D:
-					snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+					for (Snake* snake : snakes)
+					{
+						snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+					}
 					break;
 				case sf::Keyboard::W:
-					snake->ChangeDirection(sf::Vector2f(0, -1)); // Move up
+					for (Snake* snake : snakes)
+					{
+						snake->ChangeDirection(sf::Vector2f(0, -1)); // Move up
+					}
 					break;
 				case sf::Keyboard::S:
-					snake->ChangeDirection(sf::Vector2f(0, 1)); // Move down
+					for (Snake* snake : snakes)
+					{
+						snake->ChangeDirection(sf::Vector2f(0, 1)); // Move down
+					}
 					break;
 				}
 
@@ -186,18 +198,21 @@ void Game::Update()
 	{
 		//If it has restart the clock and update the game
 		tickClock.restart();
-			if (snake != nullptr)
+			if (snakes.size() != 1)
 			{
 				SpawnAppleRandomly();
 
 				//Move the snake and update the movement
-				if (!snake->Move(waterTopBounds))\
+				for (Snake* snake : snakes)
 				{
-					ResetGameState();
+					if (!snake->Move(waterTopBounds))\
+					{
+						//Snake needs to die so we need flag
+					}
+					snake->CheckSteps();
+					hasUpdatedMovement = true;
+					CheckAppleCollision(snake->snakeHead->position, snake);
 				}
-				snake->CheckSteps();  
-				hasUpdatedMovement = true;
-				CheckAppleCollision(snake->snakeHead->position);
 			}
 		}
 	else
@@ -280,37 +295,41 @@ void Game::CalculateWaterTank()
 }
 void Game::DrawSnake()
 {
-	if (snake == nullptr)
+	if (snakes.size() <= 0)
 	{
 		return;
 	}
-	//Start the search at the head
-	SnakeNode* currentNode = snake->snakeHead;
-
-	//While the node we are checking is not null continue to its next element
-	while (currentNode != nullptr)
+	for (Snake* snake : snakes)
 	{
-		if (snake == nullptr)
-		{
-			return;
-		}
-		snakeBodyRect.setPosition(currentNode->position);
+		//Start the search at the head
+		SnakeNode* currentNode = snake->snakeHead;
 
-		//Catch division by zero with if statment 
-		if(snake->movementStepsLeft > 0)
+		//While the node we are checking is not null continue to its next element
+		while (currentNode != nullptr)
 		{
-			float colourMultiplier = ((float)snake->movementStepsLeft / snake->defaultMovementSteps);
-			float colourValue = 255 * colourMultiplier;
-			snakeBodyRect.setFillColor(sf::Color(0, colourValue, -colourValue, 255));
-		}
-		else
-		{
-			snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
-		}
+			if (snake == nullptr)
+			{
+				return;
+			}
+			snakeBodyRect.setPosition(currentNode->position);
 
-		gameWindow->draw(snakeBodyRect);
-		currentNode = currentNode->nextElement;
+			//Catch division by zero with if statment 
+			if (snake->movementStepsLeft > 0)
+			{
+				float colourMultiplier = ((float)snake->movementStepsLeft / snake->defaultMovementSteps);
+				float colourValue = 255 * colourMultiplier;
+				snakeBodyRect.setFillColor(sf::Color(0, colourValue, -colourValue, 255));
+			}
+			else
+			{
+				snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
+			}
+
+			gameWindow->draw(snakeBodyRect);
+			currentNode = currentNode->nextElement;
+		}
 	}
+	
 }
 
 //Calucates the games framerate
@@ -376,18 +395,22 @@ void Game::AddApple()
 			}
 		}
 		//Check its not spawning on snake either, loop through
-		SnakeNode* currentNode = snake->snakeHead;
-
-		while (currentNode != nullptr)
+		for (Snake *snake : snakes)
 		{
-			if (newApplePosition == currentNode->position) {
-				// Position is taken, set flag to true and exit loop
-				positionTaken = true;
-				break;
-			}
-			currentNode = currentNode->nextElement;
+			SnakeNode* currentNode = snake->snakeHead;
 
+			while (currentNode != nullptr)
+			{
+				if (newApplePosition == currentNode->position) {
+					// Position is taken, set flag to true and exit loop
+					positionTaken = true;
+					break;
+				}
+				currentNode = currentNode->nextElement;
+
+			}
 		}
+
 
 		// If the position is not taken, assign it to the current index in applePositions
 		if (!positionTaken)
@@ -420,7 +443,7 @@ void Game::DrawApples()
 		}
 	}
 }
-void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition)
+void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition, Snake *snake)
 {
 	//Check if we have hit an apple, if so then add a snake body
 	for (int a = 0; a < maxApples; a++)
@@ -447,24 +470,49 @@ void Game::ResetGameState()
 	currentApples = 0;
 
 	// Recreate the snake
-	CreateSnake();
+	CreateSnakes();
 }
 
-void Game::CreateSnake() {
-	// Delete the old snake if it exists
-	if (snake != nullptr) {
-		delete snake;
-		snake = nullptr;
+void Game::CreateSnakes()
+{
+
+	for (int i = 0; i < startingSnakeCount; i++)
+	{
+		// Create new snake
+		Snake* newSnake = new Snake;
+		SnakeNode* snode = new SnakeNode;
+		newSnake->snakeHead->nextElement = snode;
+
+		//Loop through and find a free position for the snake to spawn on that doesnt interfere with any other existing snakes, make sure its 3 blocks away from starting.
+		bool hasFoundSpot = false;
+		do
+		{
+			//Spawn the snake 2 blocks from the grid border to give time to react
+			int snakeX = RandomInt(5, 16) * gridSize;
+			int snakeY = RandomInt(5, 16) * gridSize;
+
+			sf::Vector2f newSnakePos(snakeX, snakeY);
+
+			if (snakes.size() > 0)
+			{
+				for (Snake* comparSnake : snakes)
+				{
+					//TODO: Check we arent within 3 blocks of the snake head position
+					if (newSnakePos == comparSnake->snakeHead->position)
+					{
+						hasFoundSpot = false;
+					}
+					else
+					{
+						newSnake->snakeHead->position = newSnakePos;
+						newSnake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+						snakes.push_back(newSnake);
+						hasFoundSpot = true;
+					}
+				}
+
+			}
+		} 
+		while (!hasFoundSpot);
 	}
-
-	// Generate new snake position
-	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
-	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
-
-	// Create new snake and set its position
-	snake = new Snake;
-	SnakeNode* snode = new SnakeNode;
-	snake->snakeHead->nextElement = snode;
-	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
-	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
 }
