@@ -56,7 +56,7 @@ private:
 	
 	//Snake linked list vector
 	std::vector<Snake*> snakes;
-	const int startingSnakeCount{ 5 };
+	const int startingSnakeCount{ 3 };
 
 	//Clocks
 	sf::Clock waterClock;

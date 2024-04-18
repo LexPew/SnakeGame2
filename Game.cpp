@@ -183,7 +183,7 @@ void Game::ProcessInput()
 				}
 
 				hasUpdatedMovement = false;
-			}		
+			}
 			break;
 		}
 	}
@@ -198,7 +198,7 @@ void Game::Update()
 	{
 		//If it has restart the clock and update the game
 		tickClock.restart();
-			if (snakes.size() != 1)
+			if (snakes.size() > 0)
 			{
 				SpawnAppleRandomly();
 
@@ -492,7 +492,11 @@ void Game::CreateSnakes()
 			int snakeY = RandomInt(5, 16) * gridSize;
 
 			sf::Vector2f newSnakePos(snakeX, snakeY);
-
+			newSnake->snakeHead->position = newSnakePos;
+			newSnake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+			snakes.push_back(newSnake);
+			hasFoundSpot = true;
+			break;
 			if (snakes.size() > 0)
 			{
 				for (Snake* comparSnake : snakes)
@@ -504,10 +508,7 @@ void Game::CreateSnakes()
 					}
 					else
 					{
-						newSnake->snakeHead->position = newSnakePos;
-						newSnake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
-						snakes.push_back(newSnake);
-						hasFoundSpot = true;
+
 					}
 				}
 
