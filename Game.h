@@ -48,7 +48,7 @@ private:
 	void SpawnAppleRandomly();
 	void DrawApples();
 
-	void CheckAppleCollision(sf::Vector2f& newHeadPosition);
+	void CheckAppleCollision();
 
 	void ResetGameState();
 

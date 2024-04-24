@@ -2,7 +2,8 @@
 #include "SnakeNode.h"
 #include <iostream>
 
-
+//TODO: Detach snake class further from the game class. Refactor
+//TODO: Add update function, and handle collectable collision checking, also 
 class Snake
 {
 public:
@@ -12,14 +13,18 @@ public:
 	const int defaultMovementSteps{ 100 };
 	int movementStepsLeft;
 	int stepsTakenSinceOutOfBreath{ 0 };
+	int topWaterBounds{ 0 };
+	bool isAlive{ true };
+
 
 public:
 	//Constructor
-	Snake()
+	Snake(int p_TopWaterBounds)
 	{
 		//Initilize the first element
 		snakeHead = new SnakeNode;
 		movementStepsLeft = defaultMovementSteps;
+		UpdateWaterBounds(p_TopWaterBounds);
 	}
 	//Destructor
 	~Snake()
@@ -36,61 +41,22 @@ public:
 		snakeHead = nullptr;
 	}
 
-	//Move
-	bool Move(int topBoundsWater)
+	//MAIN FUNCTIONS
+	virtual void Update()
 	{
-		//Calculate the new position based on the movement direction and grid size.
-		sf::Vector2f newHeadPosition = snakeHead->position + sf::Vector2f(movementDirection.x * 48,
-																			movementDirection.y * 48);
-		//Assign the current node to the snake head
-		SnakeNode* currentNode = snakeHead;
-
-		//Move the head to the new position, this updates it's last position as well
-		currentNode->Move(newHeadPosition);
-
-		//Make sure that there is a next element to update.
-		while (currentNode->nextElement != nullptr)
-		{
-			//Move the next element of the current node to its current position.
-			currentNode->nextElement->Move(currentNode->lastPosition);
-			//Update the currentnode to the next element and repeat
-			currentNode = currentNode->nextElement;
-		}
-		if (newHeadPosition.y == (topBoundsWater))
-		{
-			movementStepsLeft = defaultMovementSteps;
-		}
-		else if(movementStepsLeft > 0)
-		{
-			movementStepsLeft--;
-		}
-
-		//Now that we have updated all the positions check we havent hit any snake parts
-		//Start at the snakehead next element
-		currentNode = snakeHead->nextElement;
-
-		while (currentNode != nullptr)
-		{
-			if (newHeadPosition == currentNode->position)
-			{
-				std::cerr << "Hit ourselves";
-				//Return false since we bumped into ourselves
-				return false;
-			}
-			currentNode = currentNode->nextElement;
-		}
-
-		//Check if the snake is out of bounds
-		if (snakeHead->position.x > 17 * 48|| snakeHead->position.x < 2 * 48
-			|| snakeHead->position.y > 17 * 48 || snakeHead->position.y < topBoundsWater)
-		{
-			return false;
-		}
-		return true;
+		//Dont call if not alive
+		if (!isAlive) return;
+		Move();
 	}
+	void UpdateWaterBounds(int p_TopWaterBounds)
+	{
+		topWaterBounds = p_TopWaterBounds;
+	}
+
 	//Handle direction
 	void ChangeDirection(const sf::Vector2f& newDirection)
 	{
+		//Simple check to ensure we arent going back on ourselves even if input.
 		if (newDirection.x != -movementDirection.x || newDirection.y != -movementDirection.y) {
 			movementDirection = newDirection;
 		}
@@ -98,25 +64,8 @@ public:
 	}
 
 	//Step check
-	void CheckSteps()
-	{
-		if (movementStepsLeft <= 0)
-		{
-			if (snakeHead->nextElement != nullptr) 
-			{
-				SnakeNode* currentNode = snakeHead;
-				SnakeNode* previousNode = currentNode;
+	void CheckSteps();
 
-				while (currentNode->nextElement != nullptr)
-				{
-					previousNode = currentNode;
-					currentNode = currentNode->nextElement;
-				}
-				previousNode->nextElement = nullptr;
-				delete currentNode;
-			}
-		}
-	}
 
 
 	//Snake related functions
@@ -190,6 +139,16 @@ public:
 
 		GetElement(Length() - 1)->nextElement = nodeToAdd;
 	}
+
+private:
+	#pragma region MOVEMENT FUNCTIONS
+	void Move();
+	void UpdateSnakePosition(sf::Vector2f& newHeadPosition);
+	bool CheckCollisionBounds();
+	bool CheckCollisionSelf();
+
+	#pragma endregion
+
 };
 		
 

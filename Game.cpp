@@ -10,18 +10,17 @@ const int spriteSize = gridSize;
 
 //Apple collectables
 const int maxApples = 5;
-sf::Vector2f applePositions[maxApples];
-int currentApples = 0;
+std::vector<sf::Vector2f> applePositions;
 
 float waterTimer;
-
 
 //Movement
 bool hasUpdatedMovement = true;
 //Water level temp var
 
 sf::RectangleShape waterLevelRect(sf::Vector2f(768, 768));
-int waterTopBounds = 48 * 2;
+int waterTopBounds = 2 * gridSize;
+
 //Main Game Functions
 bool Game::Initialize()
 {
@@ -61,14 +60,9 @@ bool Game::Initialize()
 
 	//Create a new snake
 	CreateSnake();
-
 	//Fill out apple position array with blank elements, then add a valid element to start with
-	for (int a = 0; a < 5; a++)
-	{
-		applePositions[a] = sf::Vector2f(0, 0);
-	}
+	
 	AddApple();
-
 
 	std::cout << "Game succesfully initialized!\n";
 	return true;
@@ -191,13 +185,15 @@ void Game::Update()
 				SpawnAppleRandomly();
 
 				//Move the snake and update the movement
-				if (!snake->Move(waterTopBounds))\
+
+				snake->Update();
+				if(!snake->isAlive)
 				{
+
 					ResetGameState();
 				}
-				snake->CheckSteps();  
 				hasUpdatedMovement = true;
-				CheckAppleCollision(snake->snakeHead->position);
+				CheckAppleCollision();
 			}
 		}
 	else
@@ -266,7 +262,10 @@ void Game::CalculateWaterTank()
 	{
 		waterLevelRect.setPosition(96, 96 + waterLevelOffset);
 		waterTopBounds = waterLevelOffset + 48;
-		for (int a = 0; a < maxApples; a++)
+		snake->UpdateWaterBounds(waterTopBounds);
+
+		//Remove any apples outside of the new bounds
+		for (int a = 0; a < applePositions.size(); a++)
 		{
 
 			if (applePositions[a].y <= waterTopBounds - 48)
@@ -275,8 +274,49 @@ void Game::CalculateWaterTank()
 			}
 		}
 	}
+}
+void Game::CalculateFramerate()
+{
+	elapsedTime = fpsClock.restart();
+	fps = 1 / elapsedTime.asSeconds();
+	fpsText.setString("FPS: " + std::to_string(fps));
+}
+int Game::RandomInt(int min, int max)
+{
+	std::random_device rd;
+	std::uniform_int_distribution<int> dist(min, max);
+	return dist(rd);
+}
+void Game::ResetGameState()
+{
+	// Reset water level
+	waterTopBounds = gridSize * 2;
+	waterClock.restart();
+	waterLevelRect.setPosition(96, 96);
+	applePositions.clear();
 
+	// Recreate the snake
+	CreateSnake();
+}
 
+#pragma region Snake Functions
+void Game::CreateSnake() {
+	// Delete the old snake if it exists
+	if (snake != nullptr) {
+		delete snake;
+		snake = nullptr;
+	}
+
+	// Generate new snake position
+	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
+	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
+
+	// Create new snake and set its position
+	snake = new Snake(waterTopBounds);
+	SnakeNode* snode = new SnakeNode;
+	snake->snakeHead->nextElement = snode;
+	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
+	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
 }
 void Game::DrawSnake()
 {
@@ -297,7 +337,7 @@ void Game::DrawSnake()
 		snakeBodyRect.setPosition(currentNode->position);
 
 		//Catch division by zero with if statment 
-		if(snake->movementStepsLeft > 0)
+		if (snake->movementStepsLeft > 0)
 		{
 			float colourMultiplier = ((float)snake->movementStepsLeft / snake->defaultMovementSteps);
 			float colourValue = 255 * colourMultiplier;
@@ -312,15 +352,8 @@ void Game::DrawSnake()
 		currentNode = currentNode->nextElement;
 	}
 }
-
-//Calucates the games framerate
-void Game::CalculateFramerate()
-{
-	elapsedTime = fpsClock.restart();
-	fps = 1 / elapsedTime.asSeconds();
-	fpsText.setString("FPS: " + std::to_string(fps));
-}
-
+#pragma endregion 
+#pragma region Apple Functions
 void Game::SpawnAppleRandomly()
 {
 	//Spawn a new apple every now and then based on rand number up until apple limit
@@ -332,24 +365,11 @@ void Game::SpawnAppleRandomly()
 void Game::AddApple()
 {
 	//If we have reached the apple limit dont try spawning a new one
-	if (currentApples >= maxApples)
+	if (applePositions.size() >= maxApples)
 	{
 		return;
 	}
 
-	// Loop through the applePositions array finding a free position if we cant find one return
-	int freeAppleIndex = -1;
-	for (int a = 0; a < 5; a++)
-	{
-		// Check if the current apple position is empty (0, 0)
-		if (applePositions[a] == sf::Vector2f(0, 0))
-		{	
-			freeAppleIndex = a;
-		}
-	}
-	if (freeAppleIndex == -1) {
-		return;
-	}
 
 	// Initialize variables
 	sf::Vector2f newApplePosition;
@@ -392,25 +412,17 @@ void Game::AddApple()
 		// If the position is not taken, assign it to the current index in applePositions
 		if (!positionTaken)
 		{
-			applePositions[freeAppleIndex] = newApplePosition;
-			currentApples++;
+			applePositions.push_back(newApplePosition);
 		}
 	} while (positionTaken); // Repeat until a valid position is found
 	return;
 }
-int Game::RandomInt(int min, int max)
-{
-	std::random_device rd;
-	std::uniform_int_distribution<int> dist(min, max);
-	return dist(rd);
-}
 void Game::DrawApples()
 {
-	// Loop through the applePositions array
-	for (int a = 0; a < 5; a++)
+	if (applePositions.size() > 0)
 	{
-		// Check if the current apple position is not empty (0, 0)
-		if (applePositions[a] != sf::Vector2f(0, 0))
+		// Loop through the applePositions array
+		for (int a = 0; a < applePositions.size(); a++)
 		{
 			// Set the position of the apple rectangle
 			appleRect.setPosition(applePositions[a]);
@@ -419,52 +431,19 @@ void Game::DrawApples()
 			gameWindow->draw(appleRect);
 		}
 	}
+
 }
-void Game::CheckAppleCollision(sf::Vector2f& newHeadPosition)
+void Game::CheckAppleCollision()
 {
 	//Check if we have hit an apple, if so then add a snake body
-	for (int a = 0; a < maxApples; a++)
+	for (int a = 0; a < applePositions.size(); a++)
 	{
-		if (applePositions[a] == newHeadPosition)
+		if (applePositions[a] == snake->snakeHead->position)
 		{
-			applePositions[a] = sf::Vector2f(0, 0);
-			currentApples--;
+			applePositions.erase(applePositions.begin() + a);
 			snake->AddSnakeBody();
 			AddApple();
 		}
 	}
 }
-void Game::ResetGameState()
-{
-	// Reset water level
-	waterTopBounds = 48 * 2;
-	waterClock.restart();
-	waterLevelRect.setPosition(96, 96);
-	// Clear apple positions and reset currentApples count
-	for (int a = 0; a < maxApples; a++) {
-		applePositions[a] = sf::Vector2f(0, 0);
-	}
-	currentApples = 0;
-
-	// Recreate the snake
-	CreateSnake();
-}
-
-void Game::CreateSnake() {
-	// Delete the old snake if it exists
-	if (snake != nullptr) {
-		delete snake;
-		snake = nullptr;
-	}
-
-	// Generate new snake position
-	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
-	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
-
-	// Create new snake and set its position
-	snake = new Snake;
-	SnakeNode* snode = new SnakeNode;
-	snake->snakeHead->nextElement = snode;
-	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
-	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
-}
+#pragma endregion
