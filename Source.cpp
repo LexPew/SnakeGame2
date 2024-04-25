@@ -3,12 +3,19 @@
 
 int main()
 {
-    //Create a new game object named snakeGame
-    Game snakeGame;
-
     //Initialize Random
     srand(clock());
-    //Then if it succesfully initializes then call the loop function
+    //Create new window
+    sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode(windowSize, windowSize), "Snake Game", sf::Style::Default);
+    if (!window->isOpen())
+    {
+        std::cerr << "Couldn't initilize game, window state: " << window->isOpen() << "\n";
+        return 0;
+    }
+
+    //Create a new game object named snakeGame
+    Game snakeGame(window);
+
     if (snakeGame.Initialize()) {
         snakeGame.Loop();
     }

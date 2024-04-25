@@ -24,6 +24,10 @@ private:
 	sf::RenderWindow* gameWindow{ nullptr };
 
 public:
+	Game(sf::RenderWindow* p_GameWindow)
+	{
+		gameWindow = p_GameWindow;
+	}
 	//Main game functions
 	bool Initialize();
 	void Loop();
@@ -44,7 +48,6 @@ private:
 	//Other functions
 	void CalculateFramerate();
 	void AddApple();
-	int RandomInt(int min, int max);
 	void SpawnAppleRandomly();
 	void DrawApples();
 

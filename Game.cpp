@@ -1,6 +1,6 @@
 #include "Game.h"
 #include <iostream>
-#include <random>
+#include <JMath.h>
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
@@ -29,13 +29,7 @@ bool Game::Initialize()
 	{
 		return false;
 	}
-	//Try creating a new game window then assigning it to the gameWindow pointer if we cant return early and display error
-	gameWindow = new sf::RenderWindow(sf::VideoMode(windowSize, windowSize), "Snake Game", sf::Style::Default);
-	if (!gameWindow->isOpen())
-	{
-		std::cerr << "Couldn't initilize game, window state: " << gameWindow->isOpen() << "\n";
-		return false;
-	}
+	
 
 	//Game initialization
 	gameWindow->setFramerateLimit(120);
@@ -187,7 +181,7 @@ void Game::Update()
 				//Move the snake and update the movement
 
 				snake->Update();
-				if(!snake->isAlive)
+				if(!snake->IsAlive())
 				{
 
 					ResetGameState();
@@ -206,14 +200,6 @@ void Game::Update()
 
 void Game::Display()
 {
-	/*system("cls");
-	int appleCount = 0;
-	for (sf::Vector2f apple : applePositions) {
-		if (apple != sf::Vector2f(0, 0)) {
-			appleCount++;
-		}
-	}
-	std::cout << "Apple count : " << appleCount;*/
 	//Clears the game window with black
 	gameWindow->clear(sf::Color::Black);
 
@@ -281,12 +267,7 @@ void Game::CalculateFramerate()
 	fps = 1 / elapsedTime.asSeconds();
 	fpsText.setString("FPS: " + std::to_string(fps));
 }
-int Game::RandomInt(int min, int max)
-{
-	std::random_device rd;
-	std::uniform_int_distribution<int> dist(min, max);
-	return dist(rd);
-}
+
 void Game::ResetGameState()
 {
 	// Reset water level
@@ -306,16 +287,16 @@ void Game::CreateSnake() {
 		delete snake;
 		snake = nullptr;
 	}
-
 	// Generate new snake position
-	int snakeX = 3 + rand() % 16; // Random number between 3 and 10
+
+	int snakeX = JMath::RandomInt(3,16); // Random number between 3 and 10
 	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
 
 	// Create new snake and set its position
 	snake = new Snake(waterTopBounds);
 	SnakeNode* snode = new SnakeNode;
-	snake->snakeHead->nextElement = snode;
-	snake->snakeHead->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
+	snake->GetHead()->nextElement = snode;
+	snake->GetHead()->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
 	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
 }
 void Game::DrawSnake()
@@ -325,7 +306,7 @@ void Game::DrawSnake()
 		return;
 	}
 	//Start the search at the head
-	SnakeNode* currentNode = snake->snakeHead;
+	SnakeNode* currentNode = snake->GetHead();
 
 	//While the node we are checking is not null continue to its next element
 	while (currentNode != nullptr)
@@ -337,9 +318,9 @@ void Game::DrawSnake()
 		snakeBodyRect.setPosition(currentNode->position);
 
 		//Catch division by zero with if statment 
-		if (snake->movementStepsLeft > 0)
+		if (snake->GetMovementStepsLeft() > 0)
 		{
-			float colourMultiplier = ((float)snake->movementStepsLeft / snake->defaultMovementSteps);
+			float colourMultiplier = ((float)snake->GetMovementStepsLeft() / snake->GetMovementStepsLeft());
 			float colourValue = 255 * colourMultiplier;
 			snakeBodyRect.setFillColor(sf::Color(0, colourValue, -colourValue, 255));
 		}
@@ -382,8 +363,8 @@ void Game::AddApple()
 		attempts++;
 
 		// Generate random X and Y coordinates for the new apple position, then calculate the apple position on the grid and ensure its below the the water line
-		int appleX = RandomInt(3, 17);
-		int appleY = RandomInt((waterTopBounds / 48) + 1, 17);
+		int appleX = JMath::RandomInt(3, 17);
+		int appleY = JMath::RandomInt((waterTopBounds / 48) + 1, 17);
 		newApplePosition = sf::Vector2f(appleX * gridSize, appleY * gridSize);
 
 		// Check if the new position is already taken by another apple
@@ -396,7 +377,7 @@ void Game::AddApple()
 			}
 		}
 		//Check its not spawning on snake either, loop through
-		SnakeNode* currentNode = snake->snakeHead;
+		SnakeNode* currentNode = snake->GetHead();
 
 		while (currentNode != nullptr)
 		{
@@ -438,7 +419,7 @@ void Game::CheckAppleCollision()
 	//Check if we have hit an apple, if so then add a snake body
 	for (int a = 0; a < applePositions.size(); a++)
 	{
-		if (applePositions[a] == snake->snakeHead->position)
+		if (applePositions[a] == snake->GetHead()->position)
 		{
 			applePositions.erase(applePositions.begin() + a);
 			snake->AddSnakeBody();

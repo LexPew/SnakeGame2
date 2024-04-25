@@ -2,52 +2,55 @@
 #include "SnakeNode.h"
 #include <iostream>
 
-//TODO: Detach snake class further from the game class. Refactor
-//TODO: Add update function, and handle collectable collision checking, also 
 class Snake
 {
-public:
 
+private:
+	//General snake variables
 	SnakeNode* snakeHead;
+	int topWaterBounds{ 0 };
+	bool isAlive{ true };
+	//Movement variables
 	sf::Vector2f movementDirection;
 	const int defaultMovementSteps{ 100 };
 	int movementStepsLeft;
 	int stepsTakenSinceOutOfBreath{ 0 };
-	int topWaterBounds{ 0 };
-	bool isAlive{ true };
-
+	//Colour variables
 
 public:
-	//Constructor
-	Snake(int p_TopWaterBounds)
-	{
-		//Initilize the first element
-		snakeHead = new SnakeNode;
-		movementStepsLeft = defaultMovementSteps;
-		UpdateWaterBounds(p_TopWaterBounds);
-	}
-	//Destructor
-	~Snake()
-	{
-		// Delete all the Snake Nodes
-		SnakeNode* currentNode = snakeHead;
-		while (currentNode != nullptr)
+	#pragma region MAIN FUNCTIONS
+		//Constructor
+		Snake(int p_TopWaterBounds)
 		{
-			SnakeNode* nextNode = currentNode->nextElement;
-			delete currentNode;
-			currentNode = nextNode;
+			//Initilize the first element
+			snakeHead = new SnakeNode;
+			movementStepsLeft = defaultMovementSteps;
+			UpdateWaterBounds(p_TopWaterBounds);
+		}
+		//Destructor
+		~Snake()
+		{
+			// Delete all the Snake Nodes
+			SnakeNode* currentNode = snakeHead;
+			while (currentNode != nullptr)
+			{
+				SnakeNode* nextNode = currentNode->nextElement;
+				delete currentNode;
+				currentNode = nextNode;
+			}
+
+			snakeHead = nullptr;
 		}
 
-		snakeHead = nullptr;
-	}
-
-	//MAIN FUNCTIONS
-	virtual void Update()
-	{
-		//Dont call if not alive
-		if (!isAlive) return;
-		Move();
-	}
+		//virtual void UpdateInput() = 0;
+		virtual void Update()
+		{
+			//Dont call if not alive
+			if (!isAlive) return;
+			Move();
+		}
+	#pragma endregion
+	#pragma region ADDITIONAL FUNCTIONS
 	void UpdateWaterBounds(int p_TopWaterBounds)
 	{
 		topWaterBounds = p_TopWaterBounds;
@@ -63,14 +66,32 @@ public:
 
 	}
 
+	void AddSnakeBody()
+	{
+		SnakeNode* nodeToAdd = new SnakeNode;
+
+		SnakeNode* currentNode = snakeHead;
+
+		GetElement(Length() - 1)->nextElement = nodeToAdd;
+	}
+	#pragma endregion
+	#pragma region GETTERS
+	SnakeNode* GetHead()
+	{
+		return snakeHead;
+	}
+	bool IsAlive() {
+		return isAlive;
+	}
+	int GetMovementStepsLeft()
+	{
+		return movementStepsLeft;
+	}
+	#pragma endregion 
+private:
 	//Step check
 	void CheckSteps();
-
-
-
-	//Snake related functions
-	//List functions, length, getElement ovverid
-		//Returns the length from 1 -> N
+	//Returns the length from 1 -> N
 	int Length()
 	{
 		int listSize = 0;
@@ -92,7 +113,6 @@ public:
 		return listSize;
 
 	}
-
 	SnakeNode* GetElement(int elementIndex)
 	{
 		//Check first that the element is not out of range
@@ -130,15 +150,6 @@ public:
 		}
 	}
 
-	//Adds a body to the snake
-	void AddSnakeBody()
-	{
-		SnakeNode* nodeToAdd = new SnakeNode;
-
-		SnakeNode* currentNode = snakeHead;
-
-		GetElement(Length() - 1)->nextElement = nodeToAdd;
-	}
 
 private:
 	#pragma region MOVEMENT FUNCTIONS
