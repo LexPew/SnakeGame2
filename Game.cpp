@@ -1,6 +1,6 @@
 #include "Game.h"
 #include <iostream>
-#include <JMath.h>
+#include <JMathLib/JMath.h>
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
@@ -116,8 +116,13 @@ void Game::Loop()
 	while (gameWindow->isOpen())
 	{
 		ProcessInput();
-		Update();
-		Display();
+		if (!isPaused)
+		{
+			Update();
+			Display();
+		}
+		
+
 	}
 
 }
@@ -140,29 +145,14 @@ void Game::ProcessInput()
 			{
 				ResetGameState();
 			}
-			if (hasUpdatedMovement)
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::P))
 			{
-				switch (event.key.code)
-				{
-				case sf::Keyboard::A:
-					snake->ChangeDirection(sf::Vector2f(-1, 0)); // Move left
-					break;
-				case sf::Keyboard::D:
-					snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
-					break;
-				case sf::Keyboard::W:
-					snake->ChangeDirection(sf::Vector2f(0, -1)); // Move up
-					break;
-				case sf::Keyboard::S:
-					snake->ChangeDirection(sf::Vector2f(0, 1)); // Move down
-					break;
-				}
-
-				hasUpdatedMovement = false;
-			}		
+				isPaused = !isPaused;
+			}
 			break;
 		}
 	}
+	//snake->UpdateInput();
 }
 
 void Game::Update()
@@ -320,9 +310,9 @@ void Game::DrawSnake()
 		//Catch division by zero with if statment 
 		if (snake->GetMovementStepsLeft() > 0)
 		{
-			float colourMultiplier = ((float)snake->GetMovementStepsLeft() / snake->GetMovementStepsLeft());
+			float colourMultiplier = (static_cast<float>(snake->GetMovementStepsLeft()) / snake->GetDefaultMovementSteps());
 			float colourValue = 255 * colourMultiplier;
-			snakeBodyRect.setFillColor(sf::Color(0, colourValue, -colourValue, 255));
+			snakeBodyRect.setFillColor(sf::Color(snake->GetSnakeColour().r * colourMultiplier, snake->GetSnakeColour().g * colourMultiplier, -colourValue, 255));
 		}
 		else
 		{

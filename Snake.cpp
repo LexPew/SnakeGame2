@@ -1,5 +1,7 @@
 #include "Snake.h"
+
 #define gridSize 48
+
 
 void Snake::Move()
 {
@@ -8,6 +10,7 @@ void Snake::Move()
 	UpdateSnakePosition(newHeadPosition);
 	isAlive = CheckCollisionBounds() && CheckCollisionSelf();
 	CheckSteps();
+	hasUpdatedMovement = true;
 
 }
 
@@ -64,6 +67,7 @@ bool Snake::CheckCollisionSelf()
 	}
 	return true;
 }
+
 void Snake::CheckSteps()
 {
 	if (movementStepsLeft <= 0)

@@ -69,8 +69,8 @@ private:
 	int fps{ 0 };
 
 	//Tick rate for simulation in seconds, default to 20hz
-	float tickRate = .18;
-
+	float tickRate{ 0.18f };
+	bool isPaused{ false };
 
 	//Textures
 	sf::Texture gridTexture;

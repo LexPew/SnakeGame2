@@ -1,6 +1,7 @@
 #pragma once
 #include "SnakeNode.h"
 #include <iostream>
+#include <JMath.h>
 
 class Snake
 {
@@ -11,12 +12,13 @@ private:
 	int topWaterBounds{ 0 };
 	bool isAlive{ true };
 	//Movement variables
+	bool hasUpdatedMovement{ false };
 	sf::Vector2f movementDirection;
 	const int defaultMovementSteps{ 100 };
 	int movementStepsLeft;
 	int stepsTakenSinceOutOfBreath{ 0 };
 	//Colour variables
-
+	sf::Color snakeColour{ sf::Color::Black };
 public:
 	#pragma region MAIN FUNCTIONS
 		//Constructor
@@ -26,6 +28,10 @@ public:
 			snakeHead = new SnakeNode;
 			movementStepsLeft = defaultMovementSteps;
 			UpdateWaterBounds(p_TopWaterBounds);
+
+			//Generate random colour
+			snakeColour.r = JMath::RandomInt(0, 255);
+			snakeColour.g = JMath::RandomInt(0, 255);
 		}
 		//Destructor
 		~Snake()
@@ -42,13 +48,37 @@ public:
 			snakeHead = nullptr;
 		}
 
-		//virtual void UpdateInput() = 0;
+		//Default input system
+		virtual void UpdateInput()
+		{
+			//if (!hasUpdatedMovement) { return; }
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+			{
+				ChangeDirection(sf::Vector2f(-1, 0)); // Move left
+			}
+			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+			{
+				ChangeDirection(sf::Vector2f(1, 0)); // Move right
+			}
+			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			{
+				ChangeDirection(sf::Vector2f(0, -1)); // Move up
+			}
+			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			{
+				ChangeDirection(sf::Vector2f(0, 1)); // Move down
+			}
+			//hasUpdatedMovement = false;
+		}
 		virtual void Update()
 		{
 			//Dont call if not alive
 			if (!isAlive) return;
+			UpdateInput();
 			Move();
 		}
+
+
 	#pragma endregion
 	#pragma region ADDITIONAL FUNCTIONS
 	void UpdateWaterBounds(int p_TopWaterBounds)
@@ -86,6 +116,14 @@ public:
 	int GetMovementStepsLeft()
 	{
 		return movementStepsLeft;
+	}
+	const int GetDefaultMovementSteps() 
+	{
+		return defaultMovementSteps;
+	}
+	sf::Color GetSnakeColour()
+	{
+		return snakeColour;
 	}
 	#pragma endregion 
 private:
@@ -149,9 +187,6 @@ private:
 
 		}
 	}
-
-
-private:
 	#pragma region MOVEMENT FUNCTIONS
 	void Move();
 	void UpdateSnakePosition(sf::Vector2f& newHeadPosition);
