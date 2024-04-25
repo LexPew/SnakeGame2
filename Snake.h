@@ -12,7 +12,6 @@ private:
 	int topWaterBounds{ 0 };
 	bool isAlive{ true };
 	//Movement variables
-	bool hasUpdatedMovement{ false };
 	sf::Vector2f movementDirection;
 	const int defaultMovementSteps{ 100 };
 	int movementStepsLeft;
@@ -30,8 +29,8 @@ public:
 			UpdateWaterBounds(p_TopWaterBounds);
 
 			//Generate random colour
-			snakeColour.r = JMath::RandomInt(0, 255);
-			snakeColour.g = JMath::RandomInt(0, 255);
+			snakeColour.r = JMath::RandomInt(150, 255);
+			snakeColour.g = JMath::RandomInt(150, 255);
 		}
 		//Destructor
 		~Snake()
@@ -51,7 +50,6 @@ public:
 		//Default input system
 		virtual void UpdateInput()
 		{
-			//if (!hasUpdatedMovement) { return; }
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
 			{
 				ChangeDirection(sf::Vector2f(-1, 0)); // Move left
@@ -68,13 +66,11 @@ public:
 			{
 				ChangeDirection(sf::Vector2f(0, 1)); // Move down
 			}
-			//hasUpdatedMovement = false;
 		}
 		virtual void Update()
 		{
 			//Dont call if not alive
 			if (!isAlive) return;
-			UpdateInput();
 			Move();
 		}
 

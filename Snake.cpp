@@ -10,7 +10,6 @@ void Snake::Move()
 	UpdateSnakePosition(newHeadPosition);
 	isAlive = CheckCollisionBounds() && CheckCollisionSelf();
 	CheckSteps();
-	hasUpdatedMovement = true;
 
 }
 

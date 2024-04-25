@@ -1,6 +1,7 @@
 #include "Game.h"
 #include <iostream>
 #include <JMathLib/JMath.h>
+#include "SnakePlayer2.h"
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
@@ -134,6 +135,7 @@ void Game::ProcessInput()
 	sf::Event event;
 	while (gameWindow->pollEvent(event))
 	{
+
 		switch (event.type)
 		{
 			// When event close received, call shutdown
@@ -151,8 +153,9 @@ void Game::ProcessInput()
 			}
 			break;
 		}
+		snake->UpdateInput();
 	}
-	//snake->UpdateInput();
+
 }
 
 void Game::Update()
@@ -283,7 +286,8 @@ void Game::CreateSnake() {
 	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
 
 	// Create new snake and set its position
-	snake = new Snake(waterTopBounds);
+	//snake = new Snake(waterTopBounds);
+	snake = new SnakePlayer2(waterTopBounds);
 	SnakeNode* snode = new SnakeNode;
 	snake->GetHead()->nextElement = snode;
 	snake->GetHead()->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
