@@ -11,6 +11,7 @@ private:
 	SnakeNode* snakeHead;
 	int topWaterBounds{ 0 };
 	bool isAlive{ true };
+	std::vector<Snake*>* otherSnakes;
 	//Movement variables
 	sf::Vector2f movementDirection;
 	const int defaultMovementSteps{ 100 };
@@ -21,11 +22,12 @@ private:
 public:
 	#pragma region MAIN FUNCTIONS
 		//Constructor
-		Snake(int p_TopWaterBounds)
+		Snake(int p_TopWaterBounds, std::vector<Snake*>* p_SnakeList)
 		{
 			//Initilize the first element
 			snakeHead = new SnakeNode;
 			movementStepsLeft = defaultMovementSteps;
+			otherSnakes = p_SnakeList;
 			UpdateWaterBounds(p_TopWaterBounds);
 
 			//Generate random colour
@@ -187,7 +189,7 @@ private:
 	void Move();
 	void UpdateSnakePosition(sf::Vector2f& newHeadPosition);
 	bool CheckCollisionBounds();
-	bool CheckCollisionSelf();
+	bool CheckCollision();
 
 	#pragma endregion
 

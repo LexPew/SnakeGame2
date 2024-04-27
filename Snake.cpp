@@ -8,7 +8,7 @@ void Snake::Move()
 	//Calculate head position
 	sf::Vector2f newHeadPosition = snakeHead->position + sf::Vector2f(movementDirection.x * gridSize, movementDirection.y * gridSize);
 	UpdateSnakePosition(newHeadPosition);
-	isAlive = CheckCollisionBounds() && CheckCollisionSelf();
+	isAlive = CheckCollisionBounds() && CheckCollision();
 	CheckSteps();
 
 }
@@ -50,7 +50,7 @@ bool Snake::CheckCollisionBounds()
 
 
 }
-bool Snake::CheckCollisionSelf()
+bool Snake::CheckCollision()
 {
 	SnakeNode* currentNode = snakeHead->nextElement;
 
@@ -62,7 +62,27 @@ bool Snake::CheckCollisionSelf()
 			//Return false since we bumped into ourselves
 			return false;
 		}
+
 		currentNode = currentNode->nextElement;
+	}
+
+	for (Snake* snake : *otherSnakes) 
+	{
+		if (snake == this) { continue; }
+		//Loop through all the snake bits and check if our head is colliding if so kill us
+		SnakeNode* currentNode = snake->snakeHead;
+
+		while (currentNode != nullptr)
+		{
+			if (this->snakeHead->position == currentNode->position)
+			{
+				std::cerr << "Hit";
+				//Return false since we bumped into ourselves
+				return false;
+			}
+
+			currentNode = currentNode->nextElement;
+		}
 	}
 	return true;
 }

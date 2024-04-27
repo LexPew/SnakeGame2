@@ -286,11 +286,11 @@ void Game::SetupSnakes()
 		Snake* tempSnake;
 		if (snakeIndex == 0)
 		{
-			tempSnake = new Snake(waterTopBounds);
+			tempSnake = new Snake(waterTopBounds, &snakes);
 		}
 		else if (snakeIndex == 1)
 		{
-			tempSnake = new SnakePlayer2(waterTopBounds);
+			tempSnake = new SnakePlayer2(waterTopBounds,&snakes);
 		}
 		else
 		{

@@ -3,7 +3,7 @@
 class SnakePlayer2 : public Snake
 {
 public:
-	SnakePlayer2(int p_TopWaterBounds) : Snake(p_TopWaterBounds){}
+	SnakePlayer2(int p_TopWaterBounds, std::vector<Snake*>* p_SnakeList) : Snake(p_TopWaterBounds, p_SnakeList){}
 	void UpdateInput() override
 	{
 		//if (!hasUpdatedMovement) { return; }
