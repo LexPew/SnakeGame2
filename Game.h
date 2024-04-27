@@ -38,7 +38,7 @@ private:
 
 	//Loop functions
 	void ProcessInput();
-	void CreateSnake();
+	void SetupSnakes();
 	void Update();
 	void CalculateWaterTank();
 	void Display();
@@ -58,8 +58,8 @@ private:
 private:
 	
 	//Snake linked list vector
-	Snake* snake;
-
+	std::vector<Snake*> snakes;
+	int snakeCount{ 2 };
 
 	//Clocks
 	sf::Clock waterClock;
@@ -69,7 +69,7 @@ private:
 	int fps{ 0 };
 
 	//Tick rate for simulation in seconds, default to 20hz
-	float tickRate{ 0.18f };
+	float tickRate{ 0.22f };
 	bool isPaused{ false };
 
 	//Textures

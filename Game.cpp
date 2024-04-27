@@ -15,8 +15,6 @@ std::vector<sf::Vector2f> applePositions;
 
 float waterTimer;
 
-//Movement
-bool hasUpdatedMovement = true;
 //Water level temp var
 
 sf::RectangleShape waterLevelRect(sf::Vector2f(768, 768));
@@ -54,7 +52,7 @@ bool Game::Initialize()
 
 
 	//Create a new snake
-	CreateSnake();
+	SetupSnakes();
 	//Fill out apple position array with blank elements, then add a valid element to start with
 	
 	AddApple();
@@ -153,7 +151,11 @@ void Game::ProcessInput()
 			}
 			break;
 		}
-		snake->UpdateInput();
+		for (Snake* snake : snakes)
+		{
+			snake->UpdateInput();
+		}
+
 	}
 
 }
@@ -167,20 +169,19 @@ void Game::Update()
 	{
 		//If it has restart the clock and update the game
 		tickClock.restart();
-			if (snake != nullptr)
+			if (!snakes.empty())
 			{
 				SpawnAppleRandomly();
 
 				//Move the snake and update the movement
-
-				snake->Update();
-				if(!snake->IsAlive())
+				for (Snake* snake : snakes)
 				{
-
-					ResetGameState();
+					snake->Update();
 				}
-				hasUpdatedMovement = true;
 				CheckAppleCollision();
+			}
+			else {
+				ResetGameState();
 			}
 		}
 	else
@@ -241,7 +242,11 @@ void Game::CalculateWaterTank()
 	{
 		waterLevelRect.setPosition(96, 96 + waterLevelOffset);
 		waterTopBounds = waterLevelOffset + 48;
-		snake->UpdateWaterBounds(waterTopBounds);
+		for (Snake* snake : snakes)
+		{
+			snake->UpdateWaterBounds(waterTopBounds);
+		}
+
 
 		//Remove any apples outside of the new bounds
 		for (int a = 0; a < applePositions.size(); a++)
@@ -270,61 +275,82 @@ void Game::ResetGameState()
 	applePositions.clear();
 
 	// Recreate the snake
-	CreateSnake();
+	SetupSnakes();
 }
 
 #pragma region Snake Functions
-void Game::CreateSnake() {
-	// Delete the old snake if it exists
-	if (snake != nullptr) {
-		delete snake;
-		snake = nullptr;
-	}
-	// Generate new snake position
-
-	int snakeX = JMath::RandomInt(3,16); // Random number between 3 and 10
-	int snakeY = 3 + rand() % 16; // Random number between 3 and 10
-
-	// Create new snake and set its position
-	//snake = new Snake(waterTopBounds);
-	snake = new SnakePlayer2(waterTopBounds);
-	SnakeNode* snode = new SnakeNode;
-	snake->GetHead()->nextElement = snode;
-	snake->GetHead()->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
-	snake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
-}
-void Game::DrawSnake()
+void Game::SetupSnakes()
 {
-	if (snake == nullptr)
+	for (int snakeIndex = 0; snakeIndex < snakeCount; snakeIndex++)
 	{
-		return;
-	}
-	//Start the search at the head
-	SnakeNode* currentNode = snake->GetHead();
-
-	//While the node we are checking is not null continue to its next element
-	while (currentNode != nullptr)
-	{
-		if (snake == nullptr)
+		Snake* tempSnake;
+		if (snakeIndex == 0)
 		{
-			return;
+			tempSnake = new Snake(waterTopBounds);
 		}
-		snakeBodyRect.setPosition(currentNode->position);
-
-		//Catch division by zero with if statment 
-		if (snake->GetMovementStepsLeft() > 0)
+		else if (snakeIndex == 1)
 		{
-			float colourMultiplier = (static_cast<float>(snake->GetMovementStepsLeft()) / snake->GetDefaultMovementSteps());
-			float colourValue = 255 * colourMultiplier;
-			snakeBodyRect.setFillColor(sf::Color(snake->GetSnakeColour().r * colourMultiplier, snake->GetSnakeColour().g * colourMultiplier, -colourValue, 255));
+			tempSnake = new SnakePlayer2(waterTopBounds);
 		}
 		else
 		{
-			snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
+			//Snake Ai
+			
 		}
+		// Generate new snake position
+		int snakeX = JMath::RandomInt(5, 15); // Random number between 3 and 10
+		int snakeY = JMath::RandomInt(5, 15); // Random number between 3 and 10
 
-		gameWindow->draw(snakeBodyRect);
-		currentNode = currentNode->nextElement;
+		// Create new snake and set its position
+		//snake = new Snake(waterTopBounds);
+		snakes.push_back(tempSnake);
+		SnakeNode* snode = new SnakeNode;
+		tempSnake->GetHead()->nextElement = snode;
+		tempSnake->GetHead()->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
+		tempSnake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+	}
+	
+}
+void Game::DrawSnake()
+{
+	if (snakes.empty())
+	{
+		return;
+	}
+	//Loop through each snake drawing them
+	for(Snake* snake : snakes)
+	{
+		if (!snake->IsAlive()) {
+			return;
+		}
+		//Start the search at the head
+		SnakeNode* currentNode = snake->GetHead();
+
+		//While the node we are checking is not null continue to its next element
+		while (currentNode != nullptr)
+		{
+			if (snake == nullptr)
+			{
+				return;
+			}
+			snakeBodyRect.setPosition(currentNode->position);
+
+			//Catch division by zero with if statment 
+			if (snake->GetMovementStepsLeft() > 0)
+			{
+				float colourMultiplier = (static_cast<float>(snake->GetMovementStepsLeft()) / snake->GetDefaultMovementSteps());
+				float colourValue = 255 * colourMultiplier;
+				snakeBodyRect.setFillColor(sf::Color(snake->GetSnakeColour().r * colourMultiplier, snake->GetSnakeColour().g * colourMultiplier, -colourValue, 255));
+			}
+			else
+			{
+				snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
+			}
+
+			gameWindow->draw(snakeBodyRect);
+			currentNode = currentNode->nextElement;
+		}
+	
 	}
 }
 #pragma endregion 
@@ -371,18 +397,22 @@ void Game::AddApple()
 			}
 		}
 		//Check its not spawning on snake either, loop through
-		SnakeNode* currentNode = snake->GetHead();
-
-		while (currentNode != nullptr)
+		for (Snake* snake : snakes) 
 		{
-			if (newApplePosition == currentNode->position) {
-				// Position is taken, set flag to true and exit loop
-				positionTaken = true;
-				break;
-			}
-			currentNode = currentNode->nextElement;
+			SnakeNode* currentNode = snake->GetHead();
 
+			while (currentNode != nullptr)
+			{
+				if (newApplePosition == currentNode->position) {
+					// Position is taken, set flag to true and exit loop
+					positionTaken = true;
+					break;
+				}
+				currentNode = currentNode->nextElement;
+
+			}
 		}
+		
 
 		// If the position is not taken, assign it to the current index in applePositions
 		if (!positionTaken)
@@ -410,6 +440,7 @@ void Game::DrawApples()
 }
 void Game::CheckAppleCollision()
 {
+	for(Snake* snake : snakes)
 	//Check if we have hit an apple, if so then add a snake body
 	for (int a = 0; a < applePositions.size(); a++)
 	{
