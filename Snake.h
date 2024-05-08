@@ -3,107 +3,165 @@
 #include <iostream>
 #include <JMath.h>
 
+/*-- - SNAKE CLASS - ---
+*
+*	Handles all Snake related functions including movement, state, scoring and a singularly linked list.
+*
+*/
+
 class Snake
 {
-
 private:
-	//General snake variables
+#pragma region VARIABLES
+	//--GENERAL--
 	SnakeNode* snakeHead;
-	int topWaterBounds{ 0 };
-	bool isAlive{ true };
 	std::vector<Snake*>* otherSnakes;
-	//Movement variables
+
+	//--STATE--
+	bool isAlive{ true };
+	bool updatedIsAlive{ true };
+
+	//--MOVEMENT--
 	sf::Vector2f movementDirection;
+	sf::Vector2f newMovementDirection;
+
 	const int defaultMovementSteps{ 100 };
 	int movementStepsLeft;
+
 	int stepsTakenSinceOutOfBreath{ 0 };
-	//Colour variables
+	int topWaterBounds{ 0 };
+
+	//--SCORE--
+	int snakeScore{ 0 };
+	float scoreLossPercentage = .05f;
+
+	//--VISUAL--
+	char snakeSuffix{ 1 };
 	sf::Color snakeColour{ sf::Color::Black };
+
+#pragma endregion
+
 public:
-	#pragma region MAIN FUNCTIONS
-		//Constructor
-		Snake(int p_TopWaterBounds, std::vector<Snake*>* p_SnakeList)
-		{
-			//Initilize the first element
-			snakeHead = new SnakeNode;
-			movementStepsLeft = defaultMovementSteps;
-			otherSnakes = p_SnakeList;
-			UpdateWaterBounds(p_TopWaterBounds);
+#pragma region MAIN FUNCTIONS
 
-			//Generate random colour
-			snakeColour.r = JMath::RandomInt(150, 255);
-			snakeColour.g = JMath::RandomInt(150, 255);
-		}
-		//Destructor
-		~Snake()
-		{
-			// Delete all the Snake Nodes
-			SnakeNode* currentNode = snakeHead;
-			while (currentNode != nullptr)
-			{
-				SnakeNode* nextNode = currentNode->nextElement;
-				delete currentNode;
-				currentNode = nextNode;
-			}
+	/*
+	 * @brief Constructor for the Snake class.
+	 *
+	 * @param p_TopWaterBounds Top boundary for the water area.
+	 * @param p_SnakeList Pointer to a vector containing other snakes in the game.
+	 * @param p_SnakeChar Character representing the snake.
+	 */
+	Snake(int p_TopWaterBounds, std::vector<Snake*>* p_SnakeList, char p_SnakeChar)
+	{
+		// Initialize the first element
+		snakeHead = new SnakeNode;
+		movementStepsLeft = defaultMovementSteps;
+		otherSnakes = p_SnakeList;
+		UpdateWaterBounds(p_TopWaterBounds);
 
-			snakeHead = nullptr;
-		}
+		// Generate random colour
+		snakeColour.r = JMath::RandomInt(150, 255);
+		snakeColour.g = JMath::RandomInt(150, 255);
 
-		//Default input system
-		virtual void UpdateInput()
+		snakeSuffix = p_SnakeChar;
+
+		isAlive = true;
+	}
+	/*
+	* @brief Destructor for the Snake class.
+	*/
+	~Snake()
+	{
+		// Delete all the Snake Nodes
+		SnakeNode* currentNode = snakeHead;
+		while (currentNode != nullptr)
 		{
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-			{
-				ChangeDirection(sf::Vector2f(-1, 0)); // Move left
-			}
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-			{
-				ChangeDirection(sf::Vector2f(1, 0)); // Move right
-			}
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-			{
-				ChangeDirection(sf::Vector2f(0, -1)); // Move up
-			}
-			else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-			{
-				ChangeDirection(sf::Vector2f(0, 1)); // Move down
-			}
-		}
-		virtual void Update()
-		{
-			//Dont call if not alive
-			if (!isAlive) return;
-			Move();
+			SnakeNode* nextNode = currentNode->nextElement;
+			delete currentNode;
+			currentNode = nextNode;
 		}
 
+		snakeHead = nullptr;
+	}
 
-	#pragma endregion
-	#pragma region ADDITIONAL FUNCTIONS
+	/*
+	 * @brief Function to handle input for updating snake direction.
+	 */
+	virtual void UpdateInput()
+	{
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+		{
+			ChangeDirection(sf::Vector2f(-1, 0)); // Move left
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+		{
+			ChangeDirection(sf::Vector2f(1, 0)); // Move right
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+		{
+			ChangeDirection(sf::Vector2f(0, -1)); // Move up
+		}
+		else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+		{
+			ChangeDirection(sf::Vector2f(0, 1)); // Move down
+		}
+	}
+	/*
+	 * @brief Update function for the snake.
+	 */
+	virtual void Update()
+	{
+		//Dont call if not alive
+		if (!isAlive) return;
+		Move();
+	}
+	/*
+	* @brief Update flags related to snake state.
+	*/
+	void UpdateFlags()
+	{
+		isAlive = updatedIsAlive;
+	}
+
+
+#pragma endregion
+
+#pragma region ADDITIONAL FUNCTIONS
+	/*
+	 * @brief Update water bounds.
+	 *
+	 * @param p_TopWaterBounds Top boundary for the water area.
+	 */
 	void UpdateWaterBounds(int p_TopWaterBounds)
 	{
 		topWaterBounds = p_TopWaterBounds;
 	}
 
-	//Handle direction
+	/*
+	 * @brief Handles changing the direction of the snake.
+	 *
+	 * @param newDirection Direction in which the snake will go if it doesn't conflict with movement rules.
+	 */
 	void ChangeDirection(const sf::Vector2f& newDirection)
 	{
-		//Simple check to ensure we arent going back on ourselves even if input.
+		//Checks that we arent going back on ourselves and updates the newMovementDirection.
 		if (newDirection.x != -movementDirection.x || newDirection.y != -movementDirection.y) {
-			movementDirection = newDirection;
+			newMovementDirection = newDirection;
 		}
 
 	}
 
-	void AddSnakeBody()
-	{
-		SnakeNode* nodeToAdd = new SnakeNode;
-
-		SnakeNode* currentNode = snakeHead;
-
-		GetElement(Length() - 1)->nextElement = nodeToAdd;
+	/*
+	 * @brief Adds score to the snake.
+	 *
+	 * @param p_ScoreToAdd Score to add to the snake.
+	 */
+	void AddScore(int p_ScoreToAdd) {
+		snakeScore += p_ScoreToAdd;
 	}
-	#pragma endregion
-	#pragma region GETTERS
+#pragma endregion
+
+#pragma region GETTERS
 	SnakeNode* GetHead()
 	{
 		return snakeHead;
@@ -115,7 +173,7 @@ public:
 	{
 		return movementStepsLeft;
 	}
-	const int GetDefaultMovementSteps() 
+	const int GetDefaultMovementSteps()
 	{
 		return defaultMovementSteps;
 	}
@@ -123,11 +181,23 @@ public:
 	{
 		return snakeColour;
 	}
-	#pragma endregion 
+	int GetScore()
+	{
+		return snakeScore;
+	}
+	char GetSnakeChar()
+	{
+		return snakeSuffix;
+	}
+#pragma endregion 
+
 private:
-	//Step check
-	void CheckSteps();
-	//Returns the length from 1 -> N
+#pragma region LINKED LIST
+	  /*
+		* @brief Returns the length of the snake.
+		*
+		* @return Length of the snake from 1 to N.
+		*/
 	int Length()
 	{
 		int listSize = 0;
@@ -149,6 +219,13 @@ private:
 		return listSize;
 
 	}
+	/*
+	 * @brief Gets the element at the specified index.
+	 *
+	 * @param elementIndex Index of the element to retrieve.
+	 * @return SnakeNode* Pointer to the node at the specified index.
+	 *                   Returns nullptr if index is out of range.
+	 */
 	SnakeNode* GetElement(int elementIndex)
 	{
 		//Check first that the element is not out of range
@@ -185,17 +262,51 @@ private:
 
 		}
 	}
-	#pragma region MOVEMENT FUNCTIONS
-	void Move();
-	void UpdateSnakePosition(sf::Vector2f& newHeadPosition);
-	bool CheckCollisionBounds();
-	bool CheckCollision();
+	/*
+	 * @brief Adds a new body segment to the snake in the linked list.
+	 */
+public:
+	void AddSnakeBody()
+	{
+		SnakeNode* nodeToAdd = new SnakeNode;
 
-	#pragma endregion
+		SnakeNode* currentNode = snakeHead;
+
+		GetElement(Length() - 1)->nextElement = nodeToAdd;
+	}
+#pragma endregion
+private:
+#pragma region MOVEMENT FUNCTIONS
+	/**
+	 * @brief Updates the snakes movement, checking for collision, etc via collision functions.
+	 */
+	void Move();
+	/**
+	 * @brief Updates the position of the snake's head to the specified position and updates all subsequent snake nodes.
+	 *
+	 * @param newHeadPosition The new position of the snake's head.
+	 */
+	void UpdateSnakePosition(sf::Vector2f& newHeadPosition);
+	/*
+	 * @brief Checks if the snake collides with the bounds of the game area or the water.
+	 *
+	 * @return true if collision with bounds occurs, false otherwise.
+	 */
+	bool CheckCollisionBounds();
+	/**
+	 * @brief Checks if the snake collides with itself or with other snakes.
+	 *
+	 * @return true if collision with itself or other snakes occurs, false otherwise.
+	 */
+	bool CheckCollision();
+	/*
+	 * @brief Checks the steps taken by the snake, and if we are out of breath removes segments and score.
+	 */
+	void CheckSteps();
+#pragma endregion
 
 };
-		
 
-	
 
-		
+
+

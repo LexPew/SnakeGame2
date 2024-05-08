@@ -1,25 +1,37 @@
 #include <iostream>
+#include <SFML/Graphics.hpp>
 #include "Game.h"
+#include "Menu.h"
 
 int main()
 {
-    //Initialize Random
-    srand(clock());
-    //Create new window
-    sf::RenderWindow* window = new sf::RenderWindow(sf::VideoMode(windowSize, windowSize), "Snake Game", sf::Style::Default);
-    if (!window->isOpen())
-    {
-        std::cerr << "Couldn't initilize game, window state: " << window->isOpen() << "\n";
+
+    sf::RenderWindow window(sf::VideoMode(windowSize, windowSize), "Water Snakes", sf::Style::Default);
+    if (!window.isOpen()) {
+        std::cerr << "Couldn't initialize game, window state: " << window.isOpen() << "\n";
         return 0;
     }
 
-    //Create a new game object named snakeGame
-    Game snakeGame(window);
+    bool returnToMenu = true;
+    while (returnToMenu) {
+        Menu menu(&window);
+        menu.Display();
 
-    if (snakeGame.Initialize()) {
-        snakeGame.Loop();
+        if (menu.GetSelectedOption() == 0)
+        {
+            Game snakeGame(&window);
+            if (snakeGame.Initialize())
+            {
+                snakeGame.Loop();
+                returnToMenu = true;
+            }
+        }
+        else 
+        {
+            returnToMenu = false;
+        }
     }
-    std::cout << "SnakeGame: Finished" << std::endl;
+    window.close();
 
     return 0;
 }

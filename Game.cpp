@@ -2,6 +2,8 @@
 #include <iostream>
 #include <JMathLib/JMath.h>
 #include "SnakePlayer2.h"
+#include "HorizontalLayoutGroup.h"
+#include "Apple.h"
 //Grid settings
 
 //Grid size so windowSize / gridSize = N grids
@@ -11,7 +13,7 @@ const int spriteSize = gridSize;
 
 //Apple collectables
 const int maxApples = 5;
-std::vector<sf::Vector2f> applePositions;
+std::vector<Apple> apples;
 
 float waterTimer;
 
@@ -20,9 +22,14 @@ float waterTimer;
 sf::RectangleShape waterLevelRect(sf::Vector2f(768, 768));
 int waterTopBounds = 2 * gridSize;
 
+
+// Test h layout group
+HorizontalLayoutGroup* hLayoutGroup;
+std::vector<sf::Text*> snakeScoreTexts;
 //Main Game Functions
 bool Game::Initialize()
 {
+
 	//Try loading the resources if we cant return early otherwise try opening the game window
 	if (!LoadResources())
 	{
@@ -46,6 +53,11 @@ bool Game::Initialize()
 	fpsText.setFont(defaultFont);
 	fpsText.setString("FPS Counter");
 
+
+	Countdown();
+
+
+
 	//Reset the clocks
 	tickClock.restart();
 	waterClock.restart();
@@ -54,14 +66,61 @@ bool Game::Initialize()
 	//Create a new snake
 	SetupSnakes();
 	//Fill out apple position array with blank elements, then add a valid element to start with
-	
 	AddApple();
+
+	//Init Snake Scores
+	hLayoutGroup = new HorizontalLayoutGroup(96, 912, 200, false, gameWindow);
+
+	for(Snake* snake : snakes)
+	{
+		sf::Text* newSnakeText = new sf::Text;
+		newSnakeText->setFont(defaultFont);
+		newSnakeText->setString("Snake " + std::to_string(snake->GetSnakeChar()) + " : " + std::to_string(snake->GetScore()));
+		newSnakeText->setFillColor(snake->GetSnakeColour());
+		newSnakeText->setOutlineColor(sf::Color::Black);
+		newSnakeText->setOutlineThickness(2);
+		snakeScoreTexts.push_back(newSnakeText);
+		hLayoutGroup->AddText(newSnakeText);
+	}
 
 	std::cout << "Game succesfully initialized!\n";
 	return true;
 
 
 
+}
+
+void Game::Countdown()
+{
+	sf::Text countdownText;
+	countdownText.setFont(defaultFont);
+	countdownText.setCharacterSize(48);
+	countdownText.setFillColor(sf::Color::White);
+
+	// Countdown before starting the game
+	sf::Clock countdownClock;
+	for (int i = 3; i >= 1; --i)
+	{
+		while (countdownClock.getElapsedTime().asSeconds() < 1.f)
+		{
+			// Update countdown text
+			countdownText.setString(std::to_string(i));
+			countdownText.setPosition(gameWindow->getSize().x / 2 - countdownText.getLocalBounds().width / 2, gameWindow->getSize().y / 2 - countdownText.getLocalBounds().height / 2);
+
+			gameWindow->clear();
+			gameWindow->draw(countdownText);
+			gameWindow->display();
+		}
+		countdownClock.restart();
+	}
+
+	// Show "Go!" message
+	countdownText.setString("Go!");
+	countdownText.setPosition(gameWindow->getSize().x / 2 - countdownText.getLocalBounds().width / 2, gameWindow->getSize().y / 2 - countdownText.getLocalBounds().height / 2);
+
+	gameWindow->clear();
+	gameWindow->draw(countdownText);
+	gameWindow->display();
 }
 
 //Loads the game resources returning whether it was succesfull or not
@@ -111,8 +170,11 @@ bool Game::LoadResources()
 //Handles the main game loop
 void Game::Loop()
 {
-	//Whilst the game window is open then run the game loop
-	while (gameWindow->isOpen())
+	// Set isRunning flag to true initially
+	isRunning = true;
+
+	// While the game window is open and the game is running
+	while (gameWindow->isOpen() && isRunning)
 	{
 		ProcessInput();
 		if (!isPaused)
@@ -120,10 +182,7 @@ void Game::Loop()
 			Update();
 			Display();
 		}
-		
-
 	}
-
 }
 
 //Loop Functions
@@ -162,35 +221,80 @@ void Game::ProcessInput()
 
 void Game::Update()
 {
-	CalculateFramerate();
-	CalculateWaterTank();
-	//Checks that enough time has passed
-	if (tickClock.getElapsedTime().asSeconds() >= tickRate)
-	{
-		//If it has restart the clock and update the game
-		tickClock.restart();
-			if (!snakes.empty())
-			{
-				SpawnAppleRandomly();
-
-				//Move the snake and update the movement
-				for (Snake* snake : snakes)
-				{
-					snake->Update();
-				}
-				CheckAppleCollision();
-			}
-			else {
-				ResetGameState();
-			}
-		}
-	else
-	{
-		//Return early since we have elapsed enough time
+	if (!isRunning) {
 		return;
 	}
+	CalculateFramerate();
+	CalculateWaterTank();
 
+	// Update the score texts
+	for (int i = 0; i < snakeScoreTexts.size(); i++)
+	{
+		snakeScoreTexts[i]->setString("Snake " + std::to_string(snakes[i]->GetSnakeChar()) + " : " + std::to_string(snakes[i]->GetScore()));
+		hLayoutGroup->UpdateLayoutGroup();
+	}
+
+	// Checks that enough time has passed
+	if (tickClock.getElapsedTime().asSeconds() >= tickRate)
+	{
+		tickClock.restart();
+		bool isAnyAlive = false;
+		int snakesAlive = 0;
+		// Find the snake with the highest score
+		int highestScore = -1;
+		Snake* winner = nullptr;
+
+		for (Snake* snake : snakes)
+		{
+			if (snake->IsAlive())
+			{
+				snakesAlive++;
+				isAnyAlive = true;
+
+			}
+			if (snake->GetScore() > highestScore)
+			{
+				highestScore = snake->GetScore();
+				winner = snake;
+			}
+		}
+
+		if (!isAnyAlive)
+		{
+			// If no snake is alive, end the game and declare the winner
+			EndGame(winner);
+		}
+		else if (snakesAlive == 1)
+		{
+			for (Snake* snake : snakes)
+			{
+				if (snake->IsAlive()) {
+					EndGame(snake);
+				}
+
+			}
+
+		}
+		else
+		{
+			// Continue the game
+			SpawnAppleRandomly();
+			for (Snake* snake : snakes)
+			{
+
+				if (snake->IsAlive())
+				{
+					snake->UpdateFlags();
+					snake->Update();
+				}
+
+			}
+
+			CheckAppleCollision();
+		}
+	}
 }
+
 
 void Game::Display()
 {
@@ -213,14 +317,18 @@ void Game::Display()
 
 	//Draw the fps text
 	gameWindow->draw(fpsText);
+	hLayoutGroup->Draw();
 	//Dislay all elements on the screen
 	gameWindow->display();
 }
 
 void Game::Shutdown()
 {
-	//Handle shutdown properly
-	gameWindow->close();
+	isRunning = false;
+	snakeScoreTexts.clear();
+	snakes.clear();
+
+	delete hLayoutGroup;
 }
 //Other functions
 void Game::CalculateWaterTank()
@@ -249,12 +357,12 @@ void Game::CalculateWaterTank()
 
 
 		//Remove any apples outside of the new bounds
-		for (int a = 0; a < applePositions.size(); a++)
+		for (int a = 0; a < apples.size(); a++)
 		{
 
-			if (applePositions[a].y <= waterTopBounds - 48)
+			if (apples[a].position.y <= waterTopBounds - 48)
 			{
-				applePositions[a] = sf::Vector2f(0, 0);
+				apples[a].position = sf::Vector2f(0, 0);
 			}
 		}
 	}
@@ -268,11 +376,13 @@ void Game::CalculateFramerate()
 
 void Game::ResetGameState()
 {
+
+	Countdown();
 	// Reset water level
 	waterTopBounds = gridSize * 2;
 	waterClock.restart();
 	waterLevelRect.setPosition(96, 96);
-	applePositions.clear();
+	apples.clear();
 
 	// Recreate the snake
 	SetupSnakes();
@@ -286,16 +396,16 @@ void Game::SetupSnakes()
 		Snake* tempSnake;
 		if (snakeIndex == 0)
 		{
-			tempSnake = new Snake(waterTopBounds, &snakes);
+			tempSnake = new Snake(waterTopBounds, &snakes, snakeIndex);
 		}
 		else if (snakeIndex == 1)
 		{
-			tempSnake = new SnakePlayer2(waterTopBounds,&snakes);
+			tempSnake = new SnakePlayer2(waterTopBounds,&snakes, snakeIndex);
 		}
 		else
 		{
 			//Snake Ai
-			
+			tempSnake = new Snake(waterTopBounds, &snakes, snakeIndex);
 		}
 		// Generate new snake position
 		int snakeX = JMath::RandomInt(5, 15); // Random number between 3 and 10
@@ -303,12 +413,14 @@ void Game::SetupSnakes()
 
 		// Create new snake and set its position
 		//snake = new Snake(waterTopBounds);
-		snakes.push_back(tempSnake);
+
 		SnakeNode* snode = new SnakeNode;
 		tempSnake->GetHead()->nextElement = snode;
 		tempSnake->GetHead()->position = sf::Vector2f(snakeX * gridSize, snakeY * gridSize);
 		tempSnake->ChangeDirection(sf::Vector2f(1, 0)); // Move right
+		snakes.push_back(tempSnake);
 	}
+
 	
 }
 void Game::DrawSnake()
@@ -320,36 +432,37 @@ void Game::DrawSnake()
 	//Loop through each snake drawing them
 	for(Snake* snake : snakes)
 	{
-		if (!snake->IsAlive()) {
-			return;
-		}
-		//Start the search at the head
-		SnakeNode* currentNode = snake->GetHead();
-
-		//While the node we are checking is not null continue to its next element
-		while (currentNode != nullptr)
+		if (snake->IsAlive())
 		{
-			if (snake == nullptr)
-			{
-				return;
-			}
-			snakeBodyRect.setPosition(currentNode->position);
+			//Start the search at the head
+			SnakeNode* currentNode = snake->GetHead();
 
-			//Catch division by zero with if statment 
-			if (snake->GetMovementStepsLeft() > 0)
+			//While the node we are checking is not null continue to its next element
+			while (currentNode != nullptr)
 			{
-				float colourMultiplier = (static_cast<float>(snake->GetMovementStepsLeft()) / snake->GetDefaultMovementSteps());
-				float colourValue = 255 * colourMultiplier;
-				snakeBodyRect.setFillColor(sf::Color(snake->GetSnakeColour().r * colourMultiplier, snake->GetSnakeColour().g * colourMultiplier, -colourValue, 255));
-			}
-			else
-			{
-				snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
-			}
+				if (snake == nullptr)
+				{
+					return;
+				}
+				snakeBodyRect.setPosition(currentNode->position);
 
-			gameWindow->draw(snakeBodyRect);
-			currentNode = currentNode->nextElement;
+				//Catch division by zero with if statment 
+				if (snake->GetMovementStepsLeft() > 0)
+				{
+					float colourMultiplier = (static_cast<float>(snake->GetMovementStepsLeft()) / snake->GetDefaultMovementSteps());
+					float colourValue = 255 * colourMultiplier;
+					snakeBodyRect.setFillColor(sf::Color(snake->GetSnakeColour().r * colourMultiplier, snake->GetSnakeColour().g * colourMultiplier, -colourValue, 255));
+				}
+				else
+				{
+					snakeBodyRect.setFillColor(sf::Color(0, 0, 255, 255));
+				}
+
+				gameWindow->draw(snakeBodyRect);
+				currentNode = currentNode->nextElement;
+			}
 		}
+		
 	
 	}
 }
@@ -366,7 +479,7 @@ void Game::SpawnAppleRandomly()
 void Game::AddApple()
 {
 	//If we have reached the apple limit dont try spawning a new one
-	if (applePositions.size() >= maxApples)
+	if (apples.size() >= maxApples)
 	{
 		return;
 	}
@@ -388,9 +501,9 @@ void Game::AddApple()
 		newApplePosition = sf::Vector2f(appleX * gridSize, appleY * gridSize);
 
 		// Check if the new position is already taken by another apple
-		for (const sf::Vector2f& position : applePositions)
+		for (Apple& apple : apples)
 		{
-			if (newApplePosition == position) {
+			if (newApplePosition == apple.position) {
 				// Position is taken, set flag to true and exit loop
 				positionTaken = true;
 				break;
@@ -417,21 +530,22 @@ void Game::AddApple()
 		// If the position is not taken, assign it to the current index in applePositions
 		if (!positionTaken)
 		{
-			applePositions.push_back(newApplePosition);
+			apples.push_back(Apple(newApplePosition));
 		}
 	} while (positionTaken); // Repeat until a valid position is found
 	return;
 }
 void Game::DrawApples()
 {
-	if (applePositions.size() > 0)
+	if (apples.size() > 0)
 	{
 		// Loop through the applePositions array
-		for (int a = 0; a < applePositions.size(); a++)
+		for(Apple& apple : apples)
 		{
-			// Set the position of the apple rectangle
-			appleRect.setPosition(applePositions[a]);
 
+			// Set the position of the apple rectangle
+			appleRect.setPosition(apple.position);
+			appleRect.setFillColor(apple.appleColour);
 			// Draw the apple rectangle on the game window
 			gameWindow->draw(appleRect);
 		}
@@ -440,16 +554,56 @@ void Game::DrawApples()
 }
 void Game::CheckAppleCollision()
 {
-	for(Snake* snake : snakes)
+	for(Snake* snake1 : snakes)
 	//Check if we have hit an apple, if so then add a snake body
-	for (int a = 0; a < applePositions.size(); a++)
+	for (int a = 0; a < apples.size(); a++)
 	{
-		if (applePositions[a] == snake->GetHead()->position)
+		if (snake1->GetHead()->position == apples[a].position)
 		{
-			applePositions.erase(applePositions.begin() + a);
-			snake->AddSnakeBody();
-			AddApple();
+			snake1->AddScore(apples[a].collectablePoints);
+
+			for (int additionCount = 0; additionCount < apples[a].tailGrowth; additionCount++)
+			{
+				snake1->AddSnakeBody();
+			}
+
+			apples.erase(apples.begin() + a);
+
+
+			AddApple(); 
+
 		}
 	}
 }
+
 #pragma endregion
+void Game::EndGame(Snake* winner)
+{
+	// Clear the game window
+	gameWindow->clear(sf::Color::Black);
+
+	// Display winner's information
+	sf::Text winnerText;
+	winnerText.setFont(defaultFont);
+	winnerText.setCharacterSize(48);
+	winnerText.setFillColor(sf::Color::White);
+	winnerText.setString("Winner Snake: " + std::to_string(winner->GetSnakeChar()));
+	winnerText.setPosition(gameWindow->getSize().x / 2 - winnerText.getLocalBounds().width / 2, gameWindow->getSize().y / 2 - winnerText.getLocalBounds().height / 2);
+
+	sf::Text scoreText;
+	scoreText.setFont(defaultFont);
+	scoreText.setCharacterSize(36);
+	scoreText.setFillColor(sf::Color::White);
+	scoreText.setString("Score: " + std::to_string(winner->GetScore()));
+	scoreText.setPosition(gameWindow->getSize().x / 2 - scoreText.getLocalBounds().width / 2, winnerText.getPosition().y + 100);
+
+	gameWindow->draw(winnerText);
+	gameWindow->draw(scoreText);
+	gameWindow->display();
+
+	// Wait for a moment before resetting the game
+	sf::sleep(sf::seconds(2));
+
+	//ResetGameState();
+	Shutdown();
+}

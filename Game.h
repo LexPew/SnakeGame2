@@ -18,10 +18,7 @@
 
 class Game
 {
-//Main game functions and variables
-private:
-	//Pointer to gameWindow
-	sf::RenderWindow* gameWindow{ nullptr };
+
 
 public:
 	Game(sf::RenderWindow* p_GameWindow)
@@ -30,6 +27,7 @@ public:
 	}
 	//Main game functions
 	bool Initialize();
+	void Countdown();
 	void Loop();
 
 private:
@@ -53,14 +51,19 @@ private:
 
 	void CheckAppleCollision();
 
-	void ResetGameState();
+	void EndGame(Snake* winner);
 
+	void ResetGameState();
+	//Main game functions and variables
+private:
+	//Pointer to gameWindow
+	sf::RenderWindow* gameWindow{ nullptr };
 private:
 	
 	//Snake linked list vector
 	std::vector<Snake*> snakes;
 	int snakeCount{ 2 };
-
+	bool isRunning{ true };
 	//Clocks
 	sf::Clock waterClock;
 	sf::Clock tickClock; 
@@ -69,7 +72,7 @@ private:
 	int fps{ 0 };
 
 	//Tick rate for simulation in seconds, default to 20hz
-	float tickRate{ 0.5f };
+	float tickRate{ 0.48f };
 	bool isPaused{ false };
 
 	//Textures
