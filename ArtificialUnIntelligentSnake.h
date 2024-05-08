@@ -26,7 +26,7 @@ private:
     {
         sf::Vector2f nearestApplePosition;
         float appleDist = 100000; // Ensure first loop will check
-        for (const Apple& apple : appleList) // Assuming appleList is a vector of Apple objects
+        for (const Apple& apple : appleList)
         {
             float magnitudeDistance = std::sqrt(std::pow((apple.position.x - GetHead()->position.x), 2)
                 + std::pow((apple.position.y - GetHead()->position.y), 2));
